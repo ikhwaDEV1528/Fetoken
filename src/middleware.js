@@ -17,8 +17,8 @@ export async function middleware(request) {
             headers: {
                 'Content-Type': 'application/json',
                 'Cookie': credential, // Pake 'Cookie' diawali kapital
-                'path': pathname
             },
+            body:JSON.stringify({headerPath:pathname})
         });
 
         // 💡 Fix 3: Parse JSON dengan aman dulu sebelum dicek
