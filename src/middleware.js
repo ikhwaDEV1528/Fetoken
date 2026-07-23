@@ -8,7 +8,7 @@ export async function middleware(request) {
     console.log('Middleware Jalan!');
 
     try {
-        const API = `https://token-alvtafeh9-ikhwan-mardityas-projects.vercel.app/server_login/CHECKING_ADMIN`;
+        const API = `"https://token-awyaiyz75-ikhwan-mardityas-projects.vercel.app/server_login/CHECKING_ADMIN`;
 
         const RES = await fetch(API, {
             method: 'POST',
