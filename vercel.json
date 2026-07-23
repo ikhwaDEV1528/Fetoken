@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/server_login/:path*",
+      "destination": "https://token-phi-dun.vercel.app/server_login/:path*"
+    }
+  ]
+}
