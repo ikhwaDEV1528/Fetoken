@@ -13,7 +13,7 @@ export default function Login() {
     if (e) e.preventDefault();
 
     try {
-      const API = "https://token-awyaiyz75-ikhwan-mardityas-projects.vercel.app/server_login/login";
+      const API = "https://token-mm5ffamz1-ikhwan-mardityas-projects.vercel.app/server_login/login";
       
       const RES = await axios.post(API, {
         username: Form.username,
