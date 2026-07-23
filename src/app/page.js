@@ -13,7 +13,7 @@ export default function Login() {
     if (e) e.preventDefault();
 
     try {
-      const API = "https://token-mm5ffamz1-ikhwan-mardityas-projects.vercel.app/server_login/login";
+      const API = "https://token-phi-dun.vercel.app/server_login/login";
       
       const RES = await axios.post(API, {
         username: Form.username,
@@ -30,7 +30,7 @@ export default function Login() {
 
     } catch (err) {
       const pesanError = err.response?.data?.message || err.response?.data?.error || err.message || "Gagal terhubung ke server";
-      alert(pesanError);
+      alert(err + 'login');
     }
   }
 
