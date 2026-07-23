@@ -23,7 +23,7 @@ export default function Login() {
       });
 
       // 💡 Gunakan jalur huruf kecil untuk route standar Next.js
-      const targetNavigasi = RES.data.navigasi;
+      const targetNavigasi = RES.data.navigasi == '/User/Home' ? '/User/Home' : '/Admin/Dashboard';
 
       // 💡 HARD REDIRECT: Memaksa browser pindah halaman + membawa cookie login terbaru
       window.location.href = targetNavigasi;
