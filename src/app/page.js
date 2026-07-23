@@ -14,27 +14,24 @@ export default function Login () {
 
    const Navigasi = useRouter();
 
-   
    async function login () {
-      try {
-         const API = 'https://token-alvtafeh9-ikhwan-mardityas-projects.vercel.app/server_login/login';
-         const RES = await axios.post(API,{
-            username:Form.username,
-            email:Form.email,
-         },
-
-         {
-            withCredentials:true
-         }
-         
-      );
+  try {
+    const API = 'https://token-alvtafeh9-ikhwan-mardityas-projects.vercel.app/server_login/login';
+    const RES = await axios.post(API, {
+      username: Form.username,
+      email: Form.email,
+    }, {
+      withCredentials: true
+    });
+    
+    Navigasi.push(RES.data.navigasi);
       
-       Navigasi.push(RES.data.navigasi);
-         
-      } catch (err) {
-           alert(err?.response?.data.message);
-      }
-   };
+  } catch (err) {
+    // 💡 Cari key 'message', kalau gak ada cari 'error', kalau gak ada baru pesan bawaan
+    const pesanError = err.response?.data?.message || err.response?.data?.error || err.message || "Gagal terhubung ke server";
+    alert(pesanError);
+  }
+}
 
 
        
