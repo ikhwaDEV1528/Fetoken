@@ -30,7 +30,7 @@ export default function Login() {
 
       if (tujuanNavigasi) {
         // 💡 2. Pindahkan halaman DULUAN sebelum alert memblokir eksekusi
-        Navigasi.push(tujuanNavigasi);
+        Navigasi.push('/User/Home');
         
         // 💡 3. Refresh router agar Next.js membaca status Cookie baru dari backend
         Navigasi.refresh();
