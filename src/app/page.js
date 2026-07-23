@@ -30,7 +30,7 @@ export default function Login() {
 
     } catch (err) {
       const pesanError = err.response?.data?.message || err.response?.data?.error || err.message || "Gagal terhubung ke server";
-      alert(err + 'login');
+      alert(pesanError);
     }
   }
 
