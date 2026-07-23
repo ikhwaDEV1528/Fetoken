@@ -1,0 +1,23 @@
+.header{
+    background: linear-gradient(50deg,purple,rgb(102, 102, 209),rgb(218, 134, 148));
+    color: white;
+    font-weight: bold;
+    z-index: -1;
+}
+
+
+.selecet{
+  padding-left: 10px;
+}
+
+.p{
+    position: relative;
+    z-index: 999 !important;
+    color: red;
+    top: 400px;
+}
+
+.container-select{
+ z-index: 1 !important;
+
+}

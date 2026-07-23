@@ -1,24 +1,55 @@
 'use client'
 
-import Link from "next/link";
+import { useState , useEffect } from "react";
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
-import Pembayaran from "./pembayaran/page";
-import { useContext, useEffect } from "react";
+export default function Login () {
 
-
-
-
-
-
-export default function Halaman1(){
-
+   const [Form , setForm] = useState({
+      username:'',
+      email:''
+   });
 
 
+   const Navigasi = useRouter();
+
+   
+   async function login () {
+      try {
+         const API = 'http://localhost:4000/server_login/login';
+         const RES = await axios.post(API,{
+            username:Form.username,
+            email:Form.email,
+         },
+
+         {
+            withCredentials:true
+         }
+         
+      );
+      
+       Navigasi.push(RES.data.navigasi);
+         
+      } catch (err) {
+           alert(err?.response?.data.message);
+      }
+   };
 
 
-  return(
-     <div>
-        <Link href='/HalamanLogin'>klik</Link>
-     </div>
-  )
-} 
+       
+   return (
+      <main>
+         {['username', 'email'].map((item,index)=> (
+            <div key={index}>
+               <input 
+                 placeholder = {`Masukan ${item}`} 
+                 onChange={(e) => setForm(prev => item == 'username' ? ({...prev,username:e.target.value}) : ({...prev , email:e.target.value}))}>  
+               </input>
+            </div>
+         ))}
+
+         <button onClick={login}>Login</button>
+      </main>
+   )
+}

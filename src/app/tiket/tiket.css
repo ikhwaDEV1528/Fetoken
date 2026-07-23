@@ -1,0 +1,12 @@
+.cart{
+    min-height: 250px !important;
+    
+}
+
+.tanggal{
+    z-index: 999;
+}
+
+.wadahtanggal{
+ scroll-snap-type: mandatory;
+}

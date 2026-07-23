@@ -1,0 +1,18 @@
+.nextBt:hover{
+  transform: scale(0.9);
+  color: rgb(82, 80, 80);
+}
+.backBt:hover{
+  transform: scale(0.9);
+  color: rgb(82, 80, 80);
+}
+
+.cart-swiper:hover{
+    transform: scale(0.9);
+}
+
+
+  .swiper{
+    background-color: rgb(246, 248, 249);
+    overflow-x: none;
+  }
