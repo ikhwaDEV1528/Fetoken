@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export async function middleware(request) {
     // 💡 Fix 1: Ambil cookie pakai helper resmi Next.js biar gak hilang di Vercel
-    const credential = request.cookies.toString();
+    const credential = request.headers.get('cookie') || '';
     const pathname = request.nextUrl.pathname;
 
     console.log(`[MIDDLEWARE] Checking path: ${pathname}`);
