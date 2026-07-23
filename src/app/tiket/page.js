@@ -6,7 +6,7 @@ import { useState,useEffect, useContext } from "react"
 import axios from "axios"
 import './tiket.css'
 import { useRouter } from "next/navigation"
-import { Pulang } from "@/Pulang/pulang"
+
 import Head from "next/head"
 import { useFormStatus } from "react-dom"
 import Lottie from "lottie-react"
