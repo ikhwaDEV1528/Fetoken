@@ -12,7 +12,7 @@ export default function Home () {
 
     try {
 
-       const API = 'http://localhost:4000/server_login/CHECKING_ROUTE';
+       const API = 'https://token-alvtafeh9-ikhwan-mardityas-projects.vercel.app/server_login/CHECKING_ROUTE';
        const RES = await axios.post(API ,
          {
            route: valueRoute,
