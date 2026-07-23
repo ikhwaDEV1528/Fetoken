@@ -25,6 +25,7 @@ export default function Login () {
     });
     
     Navigasi.push(RES.data.navigasi);
+    alert('Berhasil login Tapi ga Navigasi')
       
   } catch (err) {
     // 💡 Cari key 'message', kalau gak ada cari 'error', kalau gak ada baru pesan bawaan
