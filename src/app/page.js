@@ -13,7 +13,7 @@ export default function Login() {
     if (e) e.preventDefault();
 
     try {
-      const API = "https://token-phi-dun.vercel.app/server_login/login";
+      const API = "/api-be/server_login/login";
       
       const RES = await axios.post(API, {
         username: Form.username,

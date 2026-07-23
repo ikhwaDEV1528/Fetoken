@@ -27,7 +27,7 @@ export default function Home () {
 
     } catch (err) {
       Redirect.push(err)
-      alert(err.message)
+      alert(err.response?.data?.message)
     }
  }
 

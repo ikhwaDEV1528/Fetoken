@@ -1,8 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    // Mengabaikan error ESLint saat proses build Netlify
-    ignoreDuringBuilds: true,
+  async rewrites() {
+    return [
+      {
+        source: '/api-be/:path*',
+        destination: 'https://token-phi-dun.vercel.app/:path*',
+      },
+    ];
   },
 };
 
