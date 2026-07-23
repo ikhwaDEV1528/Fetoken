@@ -1,54 +1,60 @@
 import { NextResponse } from "next/server";
 
 export async function middleware(request) {
-
-    const credential = request.headers.get('cookie') || '';
+    // 💡 Fix 1: Ambil cookie pakai helper resmi Next.js biar gak hilang di Vercel
+    const credential = request.cookies.toString();
     const pathname = request.nextUrl.pathname;
 
-    console.log('Middleware Jalan!');
+    console.log(`[MIDDLEWARE] Checking path: ${pathname}`);
 
     try {
         const API = `https://token-phi-dun.vercel.app/server_login/CHECKING_ADMIN`;
 
         const RES = await fetch(API, {
             method: 'POST',
+            // 💡 Fix 2: Wajib 'no-store' biar Next.js gak ngasal nge-cache respon backend
+            cache: 'no-store',
             headers: {
                 'Content-Type': 'application/json',
-                'cookie': credential,
+                'Cookie': credential, // Pake 'Cookie' diawali kapital
                 'path': pathname
             },
         });
 
+        // 💡 Fix 3: Parse JSON dengan aman dulu sebelum dicek
+        const data = await RES.json().catch(() => ({}));
+
         if (!RES.ok) {
-        
-            if(RES.status == 302) {
-                throw new Error(await RES.json().navigasi)
+            console.log(`[MIDDLEWARE REJECTED] Status: ${RES.status}`, data);
+
+            // Kalau backend ngirim instruksi redirect/navigasi (contoh: status 302 atau 401)
+            if (RES.status === 302 && data.navigasi) {
+                return NextResponse.redirect(new URL(data.navigasi, request.url));
             }
 
-            throw new Error('Akses ditolak oleh Server Express!');
+            // Fallback kalau akses ditolak biasa
+            return NextResponse.redirect(new URL('/Home', request.url));
         }
-        
 
-        // ✅ 1. Bikin object response SATU KALI SAJA di sini
+        // ✅ Response sukses
         const response = NextResponse.next();
 
-        // ✅ 2. Oper Set-Cookie jika Express menerbitkan token baru (Auto Refresh)
+        // Oper Set-Cookie jika Express menerbitkan token baru
         const setCookieHeader = RES.headers.get('set-cookie');
-        
         if (setCookieHeader) {
             response.headers.set('set-cookie', setCookieHeader);
         }
 
-        // ✅ 3. Tempelkan Header Anti-Cache ke object response YANG SAMA
+        // Header Anti-Cache
         response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         response.headers.set('Pragma', 'no-cache');
         response.headers.set('Expires', '0');
 
-        // ✅ 4. Return object response ini!
         return response;
 
     } catch (err) {
-        console.log("Middleware Error:", err);
+        console.error("[MIDDLEWARE FATAL ERROR]:", err.message);
+        // Jika jaringan down / backend mati, redirect aman ke Home
         return NextResponse.redirect(new URL('/Home', request.url));
     }
 }
@@ -60,4 +66,4 @@ export const config = {
         '/User/Checkout/:path*',
         '/Admin/Stok/:path*'
     ]
-}
+};
