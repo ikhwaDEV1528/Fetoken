@@ -20,7 +20,7 @@ import { scale } from "motion";
 
 
 
-export default function halamanbaru1(){
+export default function Halamanbaru1(){
   const [usernameLogin , setUserNameLogin] = useState('');
   const [usernameRegis , setUsernameRegis] = useState('');
   const [data , setdata] = useState(new Array(10).fill({nama:'ikhwan'}))
