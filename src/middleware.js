@@ -49,7 +49,7 @@ export async function middleware(request) {
 
     } catch (err) {
         console.log("Middleware Error:", err);
-        return NextResponse.redirect(new URL('/', request.url));
+        return NextResponse.redirect(new URL('/Home', request.url));
     }
 }
 
