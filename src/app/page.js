@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import axios from "axios";
-import { useRouter } from "next/navigation";
 
 export default function Login() {
   const [Form, setForm] = useState({
@@ -10,10 +9,7 @@ export default function Login() {
     email: ''
   });
 
-  const Navigasi = useRouter();
-
   async function login(e) {
-    // 💡 1. Tahan reload bawaan browser (kalau nanti dimasukkan ke <form>)
     if (e) e.preventDefault();
 
     try {
@@ -26,17 +22,11 @@ export default function Login() {
         withCredentials: true
       });
 
-      const tujuanNavigasi = RES.data.navigasi;
+      // 💡 Gunakan jalur huruf kecil untuk route standar Next.js
+      const targetNavigasi = RES.data.navigasi ? RES.data.navigasi.toLowerCase() : '/user/home';
 
-      if (tujuanNavigasi) {
-        // 💡 2. Pindahkan halaman DULUAN sebelum alert memblokir eksekusi
-        Navigasi.push('/User/Home');
-        
-        // 💡 3. Refresh router agar Next.js membaca status Cookie baru dari backend
-        Navigasi.refresh();
-      } else {
-        alert("Berhasil login, tapi data navigasi tidak ditemukan!");
-      }
+      // 💡 HARD REDIRECT: Memaksa browser pindah halaman + membawa cookie login terbaru
+      window.location.href = targetNavigasi;
 
     } catch (err) {
       const pesanError = err.response?.data?.message || err.response?.data?.error || err.message || "Gagal terhubung ke server";
