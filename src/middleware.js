@@ -5,10 +5,11 @@ export async function middleware(request) {
     const credential = request.headers.get('cookie') || '';
     const pathname = request.nextUrl.pathname;
 
-    console.log('Middleware Jalan!');
+    console.log('Middleware Next.js Jalan untuk path:', pathname);
 
     try {
-        const API = `"https://token-mm5ffamz1-ikhwan-mardityas-projects.vercel.app/server_login/CHECKING_ADMIN`;
+        // 💡 FIXED: URL dibetulkan (tanpa double quote & sesuaikan endpoint express)
+        const API = "https://token-mm5ffamz1-ikhwan-mardityas-projects.vercel.app/server_login/CHECKING_ADMIN";
 
         const RES = await fetch(API, {
             method: 'POST',
@@ -17,17 +18,22 @@ export async function middleware(request) {
                 'cookie': credential,
                 'path': pathname
             },
+            // 💡 Tambahkan cache no-store agar Vercel Next.js tidak nge-cache respon fetch
+            cache: 'no-store' 
         });
 
         if (!RES.ok) {
-        
-            if(RES.status == 302) {
-                throw new Error(await RES.json().navigasi)
+            const errorData = await RES.json().catch(() => ({}));
+            
+            // Jika ada rekomendasi navigasi dari backend
+            if (errorData.navigasi) {
+                return NextResponse.redirect(new URL(errorData.navigasi, request.url));
             }
 
-            throw new Error('Akses ditolak oleh Server Express!');
+            // Jika ditolak, lempar ke halaman Login
+            console.log("Akses Ditolak Express:", errorData.error || errorData.message);
+            return NextResponse.redirect(new URL('/Login', request.url));
         }
-        
 
         // ✅ 1. Bikin object response SATU KALI SAJA di sini
         const response = NextResponse.next();
@@ -39,17 +45,18 @@ export async function middleware(request) {
             response.headers.set('set-cookie', setCookieHeader);
         }
 
-        // ✅ 3. Tempelkan Header Anti-Cache ke object response YANG SAMA
+        // ✅ 3. Tempelkan Header Anti-Cache
         response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         response.headers.set('Pragma', 'no-cache');
         response.headers.set('Expires', '0');
 
-        // ✅ 4. Return object response ini!
+        // ✅ 4. Return response
         return response;
 
     } catch (err) {
-        console.log("Middleware Error:", err);
-        return NextResponse.redirect(new URL('/Home', request.url));
+        console.log("Middleware Error System:", err.message);
+        // Jika sistem error, kembalikan ke /Login
+        return NextResponse.redirect(new URL('/Login', request.url));
     }
 }
 
