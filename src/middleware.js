@@ -10,14 +10,15 @@ export async function middleware(request) {
 
     try {
         const RES = await fetch(API, {
-            method: 'POST',
-            cache: 'no-store',
-            headers: {
-                'Content-Type': 'application/json',
-                'Cookie': credential,
-            },
-            body: JSON.stringify({ headerPath: pathname })
-        });
+    method: 'POST',
+    cache: 'no-store',
+    headers: {
+        'Content-Type': 'application/json',
+        'Cookie': credential,
+        'x-path': pathname // <-- KIRIM VIA HEADER BIAR AMAN DARI 400
+    },
+    body: JSON.stringify({ headerPath: pathname })
+});
 
         if (!RES.ok) {
             return NextResponse.redirect(new URL('/Home', request.url));
