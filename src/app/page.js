@@ -17,7 +17,7 @@ export default function Login () {
    
    async function login () {
       try {
-         const API = 'http://localhost:4000/server_login/login';
+         const API = 'https://token-alvtafeh9-ikhwan-mardityas-projects.vercel.app/server_login/login';
          const RES = await axios.post(API,{
             username:Form.username,
             email:Form.email,
