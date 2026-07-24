@@ -4,7 +4,7 @@ const nextConfig = {
     return [
       {
         source:'/api-be/:path*',
-        destination: 'https://token-phi-dun.vercel.app//:path*',
+        destination: 'https://token-phi-dun.vercel.app/:path*',
       },
     ];
   },
