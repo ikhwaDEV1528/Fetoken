@@ -1,12 +1,13 @@
+
 import { NextResponse } from "next/server";
 
 export async function middleware(request) {
     // 💡 Ambil semua cookie dari domain Frontend
     const credential = request.cookies.toString() || request.headers.get('cookie') || '';
     const pathname = request.nextUrl.pathname;
-
+    
     // Tembak Backend langsung dengan membawa cookie yang sudah tersimpan di domain FE
-    const API = `https://token-phi-dun.vercel.app/server_login/CHECKING_ADMIN`;
+    const API = `https://token-bi7ud97j9-ikhwan-mardityas-projects.vercel.app/server_login/CHECKING_ADMIN`;
 
     try {
         const RES = await fetch(API, {
@@ -20,21 +21,19 @@ export async function middleware(request) {
             body: JSON.stringify({ headerPath: pathname })
         });
 
-        // Jika status bukan 200 (Token invalid / expired / unauthorized)
+        const Route = await RES.json();
+
+
         if (!RES.ok) {
             console.log(`[MIDDLEWARE] Akses ditolak (${RES.status}) untuk path: ${pathname}`);
-            
-            // Mencegah Infinite Loop jika halaman tujuan redirect sama dengan halaman saat ini
-            if (pathname !== '/Home' && pathname !== '/login') {
-                return NextResponse.redirect(new URL('/login', request.url));
-            }
-            return NextResponse.next();
+            return NextResponse.redirect(new URL(Route.navigasi , request.url));
         }
 
         const response = NextResponse.next();
 
         // Pass cookie baru kalau ada auto-refresh token dari BE
         const setCookieHeader = RES.headers.get('set-cookie');
+        
         if (setCookieHeader) {
             response.headers.set('set-cookie', setCookieHeader);
         }
@@ -43,7 +42,7 @@ export async function middleware(request) {
 
     } catch (err) {
         console.error("[MIDDLEWARE ERROR]:", err.message);
-        return NextResponse.redirect(new URL('/login', request.url));
+        return NextResponse.redirect(new URL('/', request.url));
     }
 }
 

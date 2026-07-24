@@ -12,7 +12,7 @@ export default function Home () {
 
     try {
 
-       const API = 'https://token-phi-dun.vercel.app/server_login/CHECKING_ROUTE';
+       const API = '/api-be/server_login/CHECKING_ROUTE';
        const RES = await axios.post(API ,
          {
            route: valueRoute,

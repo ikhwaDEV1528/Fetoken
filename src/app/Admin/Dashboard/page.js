@@ -7,11 +7,6 @@ import { useRouter } from "next/navigation";
 export default function Dashboard () {
     const Navigasi = useRouter();
 
-   
-    
-    
-
-    
     async function requestAdmin(params) {
 
         try {
@@ -35,10 +30,11 @@ export default function Dashboard () {
 
 
     return (
+
         <main className="bg-green-500">
             INI HALAMAN ADMIN
 
             <button className="bg-red-400" onClick={requestAdmin}>REQ ADMIN</button>
         </main>
-    )
+     )
 }
