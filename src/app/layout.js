@@ -2,7 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Global from '@/GlobalNilai/Global'
 import Head from "next/head";
-
+import { CEK_HAK_AKSES } from "@/Hak_akses";
 
 
 const geistSans = Geist({
@@ -32,9 +32,7 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Global>
-           {children}
-          
-           
+          {children}
         </Global>
       </body>
     </html>
