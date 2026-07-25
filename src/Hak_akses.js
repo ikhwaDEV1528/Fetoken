@@ -14,7 +14,7 @@ export function CEK_HAK_AKSES({children}) {
   async function HAK_AKSES() {
       
       try {
-        const API_HAK_AKSES = 'http://localhost:4000/server_login/CHECKING_ADMIN';
+        const API_HAK_AKSES = '/api-be/server_login/CHECKING_ADMIN';
         const ress = await axios.post(API_HAK_AKSES,{headerPath:pathname} , {withCredentials:true})
         alert('CEK HAK AKSES SUKSES')
         setIsRender(true)

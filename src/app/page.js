@@ -19,7 +19,7 @@ export default function Login(value_kompo) {
     if (e) e.preventDefault();
 
     try {
-      const API = "http://localhost:4000/server_login/login";
+      const API = "/api-be/server_login/login";
       
       const RES = await axios.post(API, {
         username: Form.username,
@@ -48,7 +48,7 @@ export default function Login(value_kompo) {
 
   return (
     <main className="main-container min-h-screen flex flex-col justify-center items-center items-center">
-      <h1 className="font-extrabold text-blue-600">Silahkan Login!</h1>
+      <h1 className="font-extrabold text-blue-600">Silahkan Login!!</h1>
       <div className="flex flex-col  min-w-sm  lg:min-w-lg h-80  gap-2 p-10">
         <div className="flex flex-col  gap-5">
           {['username','email'].map((item,index)=> (

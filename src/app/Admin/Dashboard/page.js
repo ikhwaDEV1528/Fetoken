@@ -13,7 +13,7 @@ export default function Dashboard () {
 
         try {
 
-           const API = 'http://localhost:4000/server_login/test';
+           const API = 'https://token-phi-dun.vercel.app/server_login/test';
            const RES = await axios.get(API, {withCredentials:true});
            alert(JSON.stringify(RES.data.message));
 
