@@ -5,13 +5,14 @@ export function Berita () {
 
    
    const Data = [
-    {logo:'/foto_pp.jpeg' , nama:'Kreator Magang' , tag:'#VirayFypToktok2026k' , postingan:'/vidio.mp4',deskripsi:'Makan enak ditemani dengan dede wulan imup yang cantik,gemash dan lucuu semuanya pokoknya!'},
+    {logo:'/foto_pp.jpeg' , nama:'Kreator Magang' , tag:'#VirayFypToktok2026k' , postingan:'https://youtu.be/AP0NACavjfk?si=8yB37VbrXoDTjq6Y',deskripsi:'Makan enak ditemani dengan dede wulan imup yang cantik,gemash dan lucuu semuanya pokoknya!'},
         {logo:'/foto_pp.jpeg' , nama:'Kreator Magang' , tag:'#VirayFypToktok2026k' , postingan:'/game.png',deskripsi:'Makan enak ditemani dengan dede wulan imup yang cantik,gemash dan lucuu semuanya pokoknya!'},
             {logo:'/foto_pp.jpeg' , nama:'Kreator Magang' , tag:'#VirayFypToktok2026k' , postingan:'/codingan.png',deskripsi:'Makan enak ditemani dengan dede wulan imup yang cantik,gemash dan lucuu semuanya pokoknya!'},
                 {logo:'/foto_pp.jpeg' , nama:'Kreator Magang' , tag:'#VirayFypToktok2026k' , postingan:'/bakhti.png',deskripsi:'Makan enak ditemani dengan dede wulan imup yang cantik,gemash dan lucuu semuanya pokoknya!'},
                     {logo:'/foto_pp.jpeg' , nama:'Kreator Magang' , tag:'#VirayFypToktok2026k' , postingan:'/tujuh.jpeg',deskripsi:'Makan enak ditemani dengan dede wulan imup yang cantik,gemash dan lucuu semuanya pokoknya!'}
    ]
-
+   
+   
 
     return (
         <main className="main-conatiner flex flex-col gap-0 ">
@@ -32,7 +33,7 @@ export function Berita () {
               </div>
 
               <div className="w-full">
-                {item.postingan.split(".")[1] == 'mp4' ? <video autoPlay={true} loop  className="w-full" src={item.postingan}></video> : <img className="w-full" src={item.postingan}/>}
+                {item.postingan.split(".")[1] == 'mp4' ? <video autoPlay playsInline loop  className="w-full" ><source src={item.postingan} type="video/mp4" /></video> : <img className="w-full" src={item.postingan}/>}
               </div>
 
               <div className="flex gap-5 py-3 px-2">
@@ -42,6 +43,7 @@ export function Berita () {
               </div>
             </div>
            ))}
+          
         </main>
     )
 }

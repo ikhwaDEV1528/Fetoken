@@ -16,23 +16,6 @@ export default function Home () {
 
  
 
-  async function Checkout (valueRoute) {
-    
-    try {
-      const API = '/api-be/server_login/CHECKING_ROUTE';
-      const RES = await axios.post(API ,
-        { route: valueRoute},{withCredentials:true}
-      );
-
-      Redirect.push(RES.data.navigasi)
-
-    } catch (err) {
-      Redirect.push(err)
-      alert(err.response?.data?.message)
-    }
-  }
-
-
 
 
   return (
@@ -44,7 +27,6 @@ export default function Home () {
           <Berita/>
         </div>
 
-        <button onClick={()=> Checkout('/User/Checkout')}>Co</button>
       </main>
     </CEK_HAK_AKSES>
   )

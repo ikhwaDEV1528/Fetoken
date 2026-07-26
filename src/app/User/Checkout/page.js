@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot } from 'firebase/firestore';
 import { CEK_HAK_AKSES } from "@/Hak_akses";
+import { Header } from "@/UI/Header/Header";
+import YouTube from 'react-youtube';
 
 export default function Home () {
 
@@ -36,11 +38,27 @@ export default function Home () {
 //     return () => unsubscribe();
 //   }, []);
 
+const videoId = "AP0NACavjfk";
+
+const opts = {
+    height: '390',
+    width: '640',
+    playerVars: {
+      autoplay: 0,
+      controls: 1,       // Boleh 0 kalau mau sembunyiin bar kontrol penuh
+      modestbranding: 1, // Sembunyikan logo YouTube besar
+      rel: 0,            // Jangan tampilkan rekomendasi video lain
+      showinfo: 0,       // Sembunyikan judul (di player versi lama)
+      fs: 0,             // Sembunyikan tombol fullscreen
+    },
+  };
+
 
    return (
     <CEK_HAK_AKSES>
        <main>
-         CEHECKOUT
+         <Header/>
+          <YouTube videoId="AP0NACavjfk" opts={opts} />;
       </main>
     </CEK_HAK_AKSES>
    )
