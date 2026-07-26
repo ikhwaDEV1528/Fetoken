@@ -5,6 +5,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot } from 'firebase/firestore';
+import { CEK_HAK_AKSES } from "@/Hak_akses";
 
 export default function Home () {
 
@@ -37,9 +38,11 @@ export default function Home () {
 
 
    return (
-    <main>
+    <CEK_HAK_AKSES>
+       <main>
       CEHECKOUT
     </main>
+    </CEK_HAK_AKSES>
    )
 }
 
