@@ -40,8 +40,8 @@ export default function Home () {
    return (
     <CEK_HAK_AKSES>
        <main>
-      CEHECKOUT
-    </main>
+         CEHECKOUT
+      </main>
     </CEK_HAK_AKSES>
    )
 }
