@@ -16,7 +16,7 @@ export function CEK_HAK_AKSES({children}) {
       try {
         const API_HAK_AKSES = '/api-be/server_login/CHECKING_ADMIN';
         const ress = await axios.post(API_HAK_AKSES,{headerPath:pathname} , {withCredentials:true})
-        alert('CEK HAK AKSES SUKSES')
+        alert(ress.data.message)
         setIsRender(true)
       } catch (err) {
         // alert(err.response?.data?.message)
