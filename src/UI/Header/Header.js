@@ -36,7 +36,7 @@ export function Header () {
             <div className="container-logo-name-search-message flex justify-between px-4 py-4">
                <div className="flex gap-2 ">
                   <Image alt="pp" className="rounded-full" width={30} height={10} src ={'/tujuh.jpeg'}/>
-                  <p className="text-pink-400 font-extrabold text-[20px]">Roustz</p>
+                  <p className="text-pink-400 font-extrabold text-[20px]">Roustzzzz</p>
                </div>
 
                <div className="flex gap-7 text-[20px] text-pink-500">

@@ -17,6 +17,8 @@
     "clsx": "^2.1.1",
     "firebase": "^12.2.1",
     "gsap": "^3.13.0",
+    "leaflet": "^1.9.4",
+    "leaflet-routing-machine": "^3.2.12",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.544.0",
     "motion": "^12.23.12",

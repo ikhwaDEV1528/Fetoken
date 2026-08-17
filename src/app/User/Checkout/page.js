@@ -5,7 +5,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot } from 'firebase/firestore';
-import { CEK_HAK_AKSES } from "@/Hak_akses";
+import { CEK_HAK_AKSES } from "@/app/Hooks/Hooks";
 import { Header } from "@/UI/Header/Header";
 import YouTube from 'react-youtube';
 

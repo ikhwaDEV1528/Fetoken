@@ -14,9 +14,9 @@ export function CEK_HAK_AKSES({children}) {
   async function HAK_AKSES() {
       
       try {
-        const API_HAK_AKSES = '/api-be/server_login/CHECKING_ADMIN';
+        const API_HAK_AKSES = '/api-be/SERVER_CEK_TOKEN_ROLE/CHECK_ROLE_DAN_TOKEN';
         const ress = await axios.post(API_HAK_AKSES,{headerPath:pathname} , {withCredentials:true})
-        alert(ress.data.message)
+        // alert(ress.data.message)
         setIsRender(true)
       } catch (err) {
         // alert(err.response?.data?.message)

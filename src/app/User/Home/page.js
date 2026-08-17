@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import axios from "axios";
 import { useRouter , usePathname } from "next/navigation";
-import { CEK_HAK_AKSES } from "@/Hak_akses";
+import { CEK_HAK_AKSES } from "@/app/Hooks/Hooks";
 import { Header } from "@/UI/Header/Header";
 import { Berita } from "./components/Berita";
 import { Catatan } from "./components/Catatan";
