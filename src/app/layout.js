@@ -2,6 +2,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Global from '@/GlobalNilai/Global'
 import Head from "next/head";
+import { LoadingRequest } from "@/UI/Loading/LoadingRequest";
+import { Toast } from "@/UI/Toast/Toast";
 
 
 
@@ -33,6 +35,8 @@ export default function RootLayout({ children }) {
       >
         <Global>
           {children}
+          <LoadingRequest/>
+          <Toast/>
         </Global>
       </body>
     </html>

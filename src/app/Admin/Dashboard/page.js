@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { CEK_HAK_AKSES } from "@/app/Hooks/Hooks";
+import { Header } from "@/UI/Header/Header";
+import { Berita } from "@/app/User/Home/components/Berita";
+import { Catatan } from "./Components/Catatan";
+import { Penjualan } from "./Components/Penjualan";
 
 
 export default function Dashboard () {
@@ -32,12 +36,14 @@ export default function Dashboard () {
 
 
     return (
-      <CEK_HAK_AKSES>
-        <main className="bg-green-500">
-            INI HALAMAN ADMIN
+     
+          <main>
+            <CEK_HAK_AKSES>
+            <Header/>
+            <Catatan/>
+            <Penjualan/>
+            </CEK_HAK_AKSES>
+          </main>
 
-            <button className="bg-red-400" onClick={requestAdmin}>REQ ADMIN</button>
-        </main>
-      </CEK_HAK_AKSES>
-     )
+    )
 }
