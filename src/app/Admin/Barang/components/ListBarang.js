@@ -5,9 +5,14 @@ import axios from "axios";
 import { useContext, useEffect, useState } from "react";
 
 export function ListBarang() {
+
+
   const [page, setPage] = useState(1);
   const [totalPage, setTotalPage] = useState(1);
   const [loading, setLoading] = useState(false);
+
+
+
   const {
     setDetailBarang,
     setFormEditBarang,
@@ -28,6 +33,8 @@ export function ListBarang() {
         params: { page: currentPage, search: inputCariBarang },
         withCredentials: true
       });
+
+
 
       const dataBarang = ress.data.barang || [];
       setTotalPage(ress.data.totalPage || 1);
@@ -75,6 +82,7 @@ export function ListBarang() {
 
   // 4. EKO-SYSTEM EDIT BARANG
   function Edit(itemBarang) {
+    
     setFormEditBarang({
       kode_barang: itemBarang.kode_barang,
       harga_dasar: itemBarang.harga_dasar,
@@ -120,25 +128,35 @@ export function ListBarang() {
 
                   {/* Section Harga Utama */}
                   <div className="bg-slate-50 rounded-xl p-3 mb-3 border border-slate-100">
-                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 mb-2">
+                    {/* GRID UTAMA: HARGA MODAL & HARGA JUAL */}
+                    <div className="grid grid-cols-2 gap-3 text-xs mb-2.5">
                       <div>
-                        <span className="block text-[10px] uppercase tracking-wider font-semibold text-slate-400">Harga Dasar</span>
-                        <span className="text-sm font-medium text-slate-700">
+                        <span className="block text-[10px] uppercase tracking-wider font-semibold text-slate-400">
+                          Harga Dasar
+                        </span>
+                        <span className="text-sm font-bold text-slate-700 block">
                           Rp {item.harga_dasar?.toLocaleString('id-ID')}
-
+                        </span>
+                        {/* Modal Bersih cukup ditampilkan tipis/subtile saja */}
+                        <span className="text-[10px] text-slate-400 block font-medium mt-0.5">
+                          Modal Bersih: Rp {Math.floor(item.harga_dasar - (item.harga_dasar * ((item.persentase_diskon_distributor || 0) / 100))).toLocaleString('id-ID')}
                         </span>
                       </div>
+
                       <div>
-                        <span className="block text-[10px] uppercase tracking-wider font-semibold text-slate-400">Harga Jual (Patokan)</span>
-                        <span className="text-sm font-semibold text-slate-900">
+                        <span className="block text-[10px] uppercase tracking-wider font-semibold text-slate-400">
+                          Harga Jual
+                        </span>
+                        <span className="text-sm font-extrabold text-slate-900 block">
                           Rp {item.harga_jual_produk_ke_pelanggan?.toLocaleString('id-ID')}
                         </span>
                       </div>
                     </div>
 
+                    {/* MARGIN PROFIT BAR */}
                     <div className="pt-2 border-t border-slate-200/60 flex justify-between items-center text-xs">
-                      <span className="text-slate-500">Margin Profit</span>
-                      <span className="font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                      <span className="text-slate-500 font-medium">Margin Profit</span>
+                      <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
                         +Rp {item.margin?.toLocaleString('id-ID')}
                       </span>
                     </div>
@@ -165,24 +183,24 @@ export function ListBarang() {
                   <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
                     <div>
                       <span className="text-slate-500">Total Stok: </span>
-                      <strong className="text-red-500 font-bold">{item.stok_pcs} Pcs</strong>
+                      <strong className="text-red-500 font-bold">{(() => { const list = item.list_satuan || []; const sat = list[0]; return list.length === 1 && ['KARTON', 'BALL', 'BAL', 'DUS'].includes(sat?.nama_satuan?.toUpperCase()) ? `${Math.floor((item.stok_pcs || 0) / (sat.rasio_ke_pcs || 1))} ${sat.nama_satuan}` : `${item.stok_pcs || 0} PCS`; })()}</strong>
                     </div>
                     <div className="flex gap-1.5 text-[10px]">
                       <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-medium">
-                        Disc: {item.persentase_diskon_distributor}%
+                        Disc dist: {item.persentase_diskon_distributor}%
                       </span>
                       <span className="bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-medium">
-                        Fee: {item.persentase_fee_harga_jual}%
+                        Profit target: {Number(item.persentase_fee_harga_jual).toFixed(2)}%
                       </span>
                     </div>
                   </div>
                 </div>
 
                 {/* Tombol Edit */}
-                <div className="mt-4 pt-3 border-t border-slate-100 flex justify-end">
+                <div className="bt-edit-barang mt-4 pt-4 border-t border-slate-100 flex justify-end">
                   <button
                     onClick={() => Edit(item)}
-                    className="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:bg-slate-950 text-white text-xs font-semibold rounded-xl transition-colors"
+                    className="bt-edit-barang  w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 active:bg-emerald-800 text-white text-sm font-semibold rounded-full transition-all duration-150 ease-out"
                   >
                     Edit Barang
                   </button>

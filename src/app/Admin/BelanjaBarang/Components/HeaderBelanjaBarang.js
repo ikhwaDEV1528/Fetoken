@@ -3,7 +3,7 @@
 import { Konteks } from "@/GlobalNilai/Global"
 import { set } from "firebase/database";
 import { useContext } from "react"
-
+import { ChevronLeft } from "lucide-react";
 
 
 
@@ -29,57 +29,50 @@ export function HeaderBelanjaBarang () {
 
 
     return (
-    <div className="sticky top-0 z-30 left-0 right-0 w-screen ml-[calc(50%-50vw)] -mt-4 sm:-mt-6 px-4 sm:px-6 py-3 sm:py-4 bg-white/85 backdrop-blur-md border-b border-slate-200/70 transition-all duration-200">
-  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 sm:gap-4">
+    <div className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs transition-all">
+  <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3">
 
     {/* LEFT SECTION: BACK BUTTON & TITLE */}
-    <div className="flex items-start sm:items-center gap-3 min-w-0">
+    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
       {/* Tombol Back */}
       <button
         onClick={() => window.location.href = '/Admin/Dashboard'}
-        className="group flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 active:scale-95 transition-all duration-150 shrink-0 cursor-pointer"
+        className="group flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-slate-100/80 hover:bg-slate-200/80 text-slate-700 active:scale-95 transition-all duration-150 shrink-0 cursor-pointer border border-slate-200/60"
         title="Kembali"
       >
-        <svg
-          className="w-4 h-4 sm:w-4.5 sm:h-4.5 transition-transform duration-200 group-hover:-translate-x-0.5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
-        </svg>
+        <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.5] text-slate-800 transition-transform group-hover:-translate-x-0.5" />
       </button>
 
-      <div className="hidden sm:block w-px h-9 bg-slate-200 shrink-0" />
+      <div className="hidden sm:block w-px h-8 bg-slate-200 shrink-0" />
 
       {/* TEXT SECTION */}
-      <div className="min-w-0 space-y-0.5">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-          <h1 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight truncate">
-            Form Belanja Barang (Faktur)
-          </h1>
-        </div>
-        <p className="text-[11px] sm:text-sm text-slate-500 font-medium truncate">
-          Pencatatan barang masuk dan pengeluaran kas toko
+      <div className="min-w-0 flex flex-col justify-center">
+        <h1 className="text-base sm:text-xl font-extrabold tracking-tight text-slate-900 truncate leading-snug">
+          Form Belanja Barang
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-500 font-medium truncate mt-0.5">
+          Pencatatan barang masuk
         </p>
       </div>
     </div>
 
-    {/* RIGHT SECTION: BUTTON ADD */}
+    {/* RIGHT SECTION: BUTTON ADD BARANG */}
     <button
       onClick={() => OpenTambahBarang()}
-      className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.97] text-white font-semibold rounded-lg text-xs sm:text-sm transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer group shrink-0"
+      className="h-11 sm:h-12 px-4 sm:px-6 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-sm transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer group shrink-0"
     >
       <svg
-        className="w-4 h-4 transition-transform duration-200 group-hover:rotate-90"
+        className="w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-200 group-hover:rotate-90 stroke-[2.5]"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
       >
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
       </svg>
-      <span className="whitespace-nowrap">Tambah Barang Baru</span>
+      <span className="whitespace-nowrap">
+        <span className="inline sm:hidden"> Barang</span>
+        <span className="hidden sm:inline">Tambah Barang Baru</span>
+      </span>
     </button>
 
   </div>

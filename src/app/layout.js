@@ -4,6 +4,7 @@ import Global from '@/GlobalNilai/Global'
 import Head from "next/head";
 import { LoadingRequest } from "@/UI/Loading/LoadingRequest";
 import { Toast } from "@/UI/Toast/Toast";
+import { GlobalOprasional } from "@/GlobalNilai/GlobalOprasional";
 
 
 
@@ -34,9 +35,11 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Global>
+          <GlobalOprasional>
           {children}
           <LoadingRequest/>
           <Toast/>
+          </GlobalOprasional>
         </Global>
       </body>
     </html>

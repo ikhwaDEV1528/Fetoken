@@ -8,6 +8,7 @@ import { Header } from "@/UI/Header/Header";
 import { Berita } from "@/app/User/Home/components/Berita";
 import { Catatan } from "./Components/Catatan";
 import { Penjualan } from "./Components/Penjualan";
+import { TimeoutNotif } from "@/UI/timeoutNotif/timeoutNotif";
 
 
 export default function Dashboard () {
@@ -38,11 +39,12 @@ export default function Dashboard () {
     return (
      
           <main>
-            <CEK_HAK_AKSES>
+        
             <Header/>
             <Catatan/>
             <Penjualan/>
-            </CEK_HAK_AKSES>
+            <TimeoutNotif/>
+         
           </main>
 
     )

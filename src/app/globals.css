@@ -127,3 +127,25 @@
   height: 50px;
   width: 50px;
 } */
+
+
+.edit-pelanggan:hover{
+  transform: scale(0.95);
+}
+
+.tambah-pelanggan:hover{
+  transform: scale(0.95);
+}
+
+.bt-timeout:hover{
+  transform: scale(0.94);
+}
+
+
+.bt-edit-barang {
+  transition: transform 0.15s ease-out;
+}
+
+.bt-edit-barang:active {
+  transform: scale(0.94);
+}

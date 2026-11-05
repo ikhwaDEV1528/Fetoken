@@ -6,7 +6,7 @@
   "rewrites": [
     {
   "source": "/api-be/:path*",
-  "destination": "https://token-phi-dun.vercel.app/:path*"
+  "destination": "https://cvputrabakhtipratama.my.id/:path*"
 }
   ]
 }

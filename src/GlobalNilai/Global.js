@@ -10,7 +10,10 @@ export const Konteks = createContext()
 function Global({children}){
 
   // AUTH //
-  
+  const [auth , setAuth] = useState({
+    csrfToken:null,
+    username:''
+  })
 
   // STATE BARANG //
   const [DetailBarang , setDetailBarang] = useState({
@@ -20,6 +23,12 @@ function Global({children}){
   }) 
 
   const [Barang , setBarang] = useState([]); // data barang di listbarang
+  
+  const [dataPelanggan , setDataPelanggan] = useState({
+    masterPelanggan:[],
+    filterPelanggan:[]
+  }) // untuk simpan data pelanggan di menu pelanggan;
+  
    
    // STATE FORM EDIT DATA BARANG.JS //
   const [formEditBarang , setFormEditBarang] = useState({
@@ -28,6 +37,14 @@ function Global({children}){
     persentase_diskon_distributor:"",
     persentase_fee_harga_jual:'',
   })
+
+
+  const [formPelanggan, setFormPelanggan] = useState({
+        nama_pelanggan: '',
+        no_hp: '',
+        alamat: '',
+        kode_pelanggan:''
+  });
 
 
 
@@ -53,11 +70,13 @@ function Global({children}){
  
 
   ////
-
   const [loading , setLoading] = useState({
-    loadingGlobal:false,
-    loadingRequest:false,
-    toast:false
+    loadingGlobal:false, // buat loading verivikasi token hak akses
+    loadingRequest:false, // buat loading setiap request
+    toast:false, // buat notif toast //
+    timeout:false, // buat timeout loading,
+    isTambahPelanggan:false,
+    isEditPelanggan:false // triger panel tambah pelanggan
   })
  
 
@@ -81,8 +100,13 @@ function Global({children}){
         inputCariBarang,
         setInputCariBarang,
         loading,
-        setLoading
-       
+        setLoading,
+        auth,
+        setAuth,
+        dataPelanggan,
+        setDataPelanggan,
+        setFormPelanggan,
+        formPelanggan
       }
       }>
       {children}      
