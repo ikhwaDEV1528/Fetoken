@@ -6,7 +6,7 @@ import { useContext, useEffect, useState } from "react";
 
 export function InputBarang() {
   const { dataInputBarang, setDataInputBarang, inputCariBarang, setInputCariBarang, setLoading } = useContext(Konteks);
-  
+
   // State lokal untuk kontrol Popup Modal Panel Overlay
   const [showModal, setShowModal] = useState(false);
 
@@ -28,7 +28,7 @@ export function InputBarang() {
       setDataInputBarang(prev => ({ ...prev, ItemBarang: hasilCari }));
 
       tampilkanToast(ress.data.message, 'success')
-      
+
     } catch (err) {
       tampilkanToast(err?.response?.data?.message || 'Terjadi kesalah server, Coba lagi!', 'error')
     } finally {
@@ -58,10 +58,15 @@ export function InputBarang() {
     if (existPesanan) return alert('Barang sudah ada di daftar pesanan!');
 
     const listSatuan = barang.list_satuan || [];
-    
+
+    if (listSatuan.length > 0 && listSatuan.every(s => s.is_active_satuan == 0)) {
+      return alert('Semua satuan barang ini nonaktif!');
+    }
+
+    const satuanAktif = listSatuan.filter(s => s.is_active_satuan != 0);
 
     // Pilih satuan default (prioritas PCS / level 1, jika tidak ada ambil index pertama)
-    const satuanDefault = listSatuan.find(s => s.level === 1 || s.nama_satuan === 'PCS') || listSatuan[0] || {
+    const satuanDefault = satuanAktif.find(s => s.level === 1 || s.nama_satuan === 'PCS') || satuanAktif[0] || {
       id_satuan: null,
       nama_satuan: 'PCS',
       harga_jual: 0,
@@ -74,7 +79,7 @@ export function InputBarang() {
       nama_barang: barang.nama_barang,
       stok_pcs: barang.stok_pcs,
       list_satuan: listSatuan, // Simpan array semua pilihan satuan untuk dipasang dropdown di UI Kasir
-      ada_fitur_bonus:barang.ada_fitur_bonus,
+      ada_fitur_bonus: barang.ada_fitur_bonus,
       // Satuan Aktif
       id_satuan: satuanDefault.id_satuan,
       nama_satuan: satuanDefault.nama_satuan,
@@ -107,7 +112,7 @@ export function InputBarang() {
 
   return (
     <main className="w-full max-w-6xl mx-auto p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 font-sans text-slate-800 antialiased pb-20">
-      
+
       {/* HEADER & SEARCH SECTION */}
       <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-6 shadow-xs space-y-4">
         <div>
@@ -155,16 +160,16 @@ export function InputBarang() {
       {/* POPUP MODAL OVERLAY (FIXED INSET-0) */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-6 lg:p-8 animate-in fade-in duration-200">
-          
+
           {/* Backdrop Click to Close */}
-          <div 
-            className="absolute inset-0" 
-            onClick={() => setShowModal(false)} 
+          <div
+            className="absolute inset-0"
+            onClick={() => setShowModal(false)}
           />
 
           {/* Modal Card Panel Box */}
           <div className="relative w-full max-w-5xl max-h-[90vh] bg-white rounded-3xl border border-slate-200/80 shadow-2xl overflow-hidden flex flex-col z-10">
-            
+
             {/* Header Popup Panel */}
             <div className="px-4 sm:px-6 py-4 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
               <div>
@@ -179,7 +184,7 @@ export function InputBarang() {
               {/* Tombol Close Popup */}
               <button
                 type="button"
-                onClick={() => setShowModal(false)}
+                onClick={() => [setShowModal(false), setInputCariBarang("")]}
                 className="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-black flex items-center justify-center transition-all cursor-pointer"
               >
                 ✕
@@ -199,7 +204,7 @@ export function InputBarang() {
                     return (
                       <div
                         key={item.kode_barang || index}
-                        className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:border-emerald-500/60 hover:shadow-md transition-all flex flex-col justify-between gap-3 group"
+                        className={` ${item.is_active == 0 ? 'opacity-75 pointer-events-none select-none border-red-300 bg-gray-100' : 'bg-white'}  p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:border-emerald-500/60 hover:shadow-md transition-all flex flex-col justify-between gap-3 group`}
                       >
                         {/* Informasi Barang */}
                         <div className="space-y-2 min-w-0">
@@ -208,8 +213,11 @@ export function InputBarang() {
                             <span className="text-[11px] font-mono font-extrabold px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md border border-slate-200 truncate">
                               {item.kode_barang}
                             </span>
-                            <span className={`${item.stok_pcs == 0 ? 'bg-red-50 text-red-800': 'text-emerald-800 bg-emerald-50'} text-xs font-extrabold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60 shrink-0`}>
-                              {item.stok_pcs == 0 ? 'Habis':item.stok_pcs + ' PCS'} 
+
+
+
+                            <span className={`${item.stok_pcs == 0 ? 'bg-red-50 text-red-800' : 'text-emerald-800 bg-emerald-50'} text-xs font-extrabold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60 shrink-0`}>
+                              {item.stok_pcs == 0 ? 'Habis' : item.stok_pcs + ' PCS'}
                             </span>
                           </div>
 
@@ -217,6 +225,14 @@ export function InputBarang() {
                           <h3 className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug line-clamp-2 min-h-[2.5rem] group-hover:text-emerald-700 transition-colors">
                             {item.nama_barang}
                           </h3>
+
+                          <div className="bg-red-100 flex justify-center">
+                            {Number(item.is_active) === 0 && (
+                              <span className="text-red-600 font-bold border border-red-500 flex justify-center w-full py-0.5 text-xs">
+                                Non Aktif
+                              </span>
+                            )}
+                          </div>
 
                           {/* Display Range Harga Satuan */}
                           <div className="space-y-0.5 pt-1.5 border-t border-slate-100">
@@ -258,7 +274,7 @@ export function InputBarang() {
             <div className="px-4 sm:px-6 py-3.5 bg-white border-t border-slate-100 flex justify-end shrink-0">
               <button
                 type="button"
-                onClick={() => setShowModal(false)}
+                onClick={() => [setShowModal(false), setInputCariBarang("")]}
                 className="h-11 px-6 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-extrabold text-xs sm:text-sm transition-all cursor-pointer"
               >
                 Tutup Panel

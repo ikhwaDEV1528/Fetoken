@@ -134,7 +134,7 @@ export function DataFakturBelanja() {
 
 
   return (
-    <div className="w-full max-w-6xl mx-auto bg-white p-4 sm:p-6 lg:p-8 rounded-2xl border border-slate-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+    <div className="w-full max-w-7xl mx-auto bg-white p-4 sm:p-6 lg:p-8 rounded-2xl border border-slate-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
 
       {/* No. Faktur Supplier */}
       <div className="flex flex-col space-y-1.5">

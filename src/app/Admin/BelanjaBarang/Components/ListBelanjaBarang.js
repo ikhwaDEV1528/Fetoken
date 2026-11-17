@@ -303,7 +303,36 @@ export function ListBelanjaBarang({ IsScroll }) {
     }));
   }
 
-  // ==========================================
+  // // ==========================================
+  // // 2. HANDLER EDIT HARGA BELI PER SATUAN
+  // // ==========================================
+  // function harga_satuan_belanja(e, itemBelanjaan) {
+  //   const angkaMurni = e.target.value.replace(/\D/g, "");
+  //   const hargaBaru = angkaMurni ? Number(angkaMurni) : 0;
+
+  //   setDataInputBarang((prev) => ({
+  //     ...prev,
+  //     ListPesanan: prev.ListPesanan.map((item) => {
+  //       if (item.kode_barang === itemBelanjaan.kode_barang) {
+  //         const jumlah = Number(item.jumlah || 0);
+  //         const persentase = Number(item.persentase_diskon_distributor || 0);
+  //         const diskonRp = Math.round((hargaBaru * persentase) / 100);
+  //         const hargaNett = Math.max(0, hargaBaru - diskonRp);
+
+  //         return {
+  //           ...item,
+  //           harga_satuan: hargaBaru,
+  //           diskon_distributor_rp: diskonRp,
+  //           subtotal: hargaNett * jumlah
+  //         };
+  //       }
+  //       return item;
+  //     })
+  //   }));
+  // }
+
+
+    // ==========================================
   // 2. HANDLER EDIT HARGA BELI PER SATUAN
   // ==========================================
   function harga_satuan_belanja(e, itemBelanjaan) {
@@ -316,13 +345,22 @@ export function ListBelanjaBarang({ IsScroll }) {
         if (item.kode_barang === itemBelanjaan.kode_barang) {
           const jumlah = Number(item.jumlah || 0);
           const persentase = Number(item.persentase_diskon_distributor || 0);
-          const diskonRp = Math.round((hargaBaru * persentase) / 100);
+
+          // Kalau terakhir user isi diskon dalam Rp, Rp-nya dipertahankan
+          const pakaiRp = item.diskon_sumber === 'RP';
+          const diskonRp = pakaiRp
+            ? Math.min(Number(item.diskon_distributor_rp || 0), hargaBaru)
+            : Math.round((hargaBaru * persentase) / 100);
+          const persenFinal = pakaiRp
+            ? (hargaBaru > 0 ? Number(((diskonRp / hargaBaru) * 100).toFixed(6)) : 0)
+            : persentase;
           const hargaNett = Math.max(0, hargaBaru - diskonRp);
 
           return {
             ...item,
             harga_satuan: hargaBaru,
             diskon_distributor_rp: diskonRp,
+            persentase_diskon_distributor: persenFinal,
             subtotal: hargaNett * jumlah
           };
         }
@@ -352,6 +390,7 @@ export function ListBelanjaBarang({ IsScroll }) {
             ...item,
             persentase_diskon_distributor: persenBaru,
             diskon_distributor_rp: diskonRp,
+            diskon_sumber: 'PERSEN',      // <-- tambah
             subtotal: hargaNett * jumlah
           };
         }
@@ -373,13 +412,14 @@ export function ListBelanjaBarang({ IsScroll }) {
         if (item.kode_barang === itemBelanjaan.kode_barang) {
           const harga = Number(item.harga_satuan || 0);
           const jumlah = Number(item.jumlah || 0);
-          const persenSesuaian = harga > 0 ? Number(((diskonRpBaru / harga) * 100).toFixed(2)) : 0;
+          const persenSesuaian = harga > 0 ? Number(((diskonRpBaru / harga) * 100).toFixed(6)) : 0;
           const hargaNett = Math.max(0, harga - diskonRpBaru);
 
           return {
             ...item,
             diskon_distributor_rp: diskonRpBaru,
             persentase_diskon_distributor: persenSesuaian,
+              diskon_sumber: 'RP',
             subtotal: hargaNett * jumlah
           };
         }
@@ -646,207 +686,228 @@ export function ListBelanjaBarang({ IsScroll }) {
   }
 
   return (
-    <main className="w-full max-w-7xl mx-auto px-3 py-4 sm:p-6 lg:p-8 bg-slate-100 min-h-screen font-sans space-y-6 pb-32">
-      
-      {/* HEADER SECTION */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
-            Daftar Belanja
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium leading-snug">
-            Periksa item, satuan, bonus & harga sebelum simpan
-          </p>
-        </div>
+   <main className="w-full max-w-7xl mx-auto px-3 py-4 sm:p-6 lg:p-8 bg-white min-h-screen font-sans space-y-5 sm:space-y-6 pb-44 lg:pb-8">
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs sm:text-sm rounded-2xl transition-all cursor-pointer shadow-sm flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            <span>+ Cari & Tambah Barang</span>
-          </button>
-
-          <span className="text-xs sm:text-base bg-indigo-50 text-indigo-700 font-extrabold px-3.5 py-2 rounded-2xl shrink-0 border border-indigo-100/80">
-            {dataInputBarang.ListPesanan?.length || 0} Item
-          </span>
-        </div>
+  {/* HEADER SECTION */}
+  <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+    <div className="min-w-0 flex items-center gap-3">
+      <div className="hidden sm:flex w-11 h-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white">
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l3-8H5.4M7 13L5.4 5M7 13l-2.3 2.3a1 1 0 00.7 1.7H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
       </div>
+      <div className="min-w-0">
+        <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
+          Daftar Belanja
+        </h2>
+        <p className="text-xs sm:text-sm text-slate-500 mt-0.5 leading-snug">
+          Periksa item, satuan, bonus & harga sebelum simpan
+        </p>
+      </div>
+    </div>
 
-      {/* LIST STATE */}
-      {!dataInputBarang.ListPesanan || dataInputBarang.ListPesanan.length === 0 ? (
-        <div className=" bg-white border-2 border-dashed border-slate-300 rounded-3xl p-10 sm:p-16 text-center">
-          <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-3xl flex items-center justify-center mx-auto text-2xl font-black mb-4">
-            0
-          </div>
-          <p className="text-lg font-bold text-slate-700">Belum ada barang di daftar belanja</p>
-          <p className="text-sm sm:text-base text-slate-500 mt-1">Cari dan pilih produk di atas untuk menambahkan</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {dataInputBarang.ListPesanan.map((item, index) => {
-            const harga = Number(item.harga_satuan) || 0;
-            const diskonRp = Number(item.diskon_distributor_rp) || 0;
-            const hargaNett = Math.max(0, harga - diskonRp);
-            const qty = Number(item.jumlah) || 0;
-            const subtotal = hargaNett * qty;
+    <div className="flex items-center gap-2 w-full sm:w-auto">
+      <button
+        type="button"
+        onClick={() => setIsModalOpen(true)}
+        className="flex-1 sm:flex-none h-11 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-sm rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>Cari & Tambah Barang</span>
+      </button>
 
-            const rasioUtama = getRasioAktif(item);
-            const rasioBonus = getRasioBonus(item);
-            const bonus = Number(item.qty_bonus) || 0;
-            const totalPcsMasuk = (qty * rasioUtama) + (bonus * rasioBonus);
+      <span className="h-11 px-4 inline-flex items-center shrink-0 text-sm font-semibold bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-200">
+        {dataInputBarang.ListPesanan?.length || 0} Item
+      </span>
+    </div>
+  </div>
 
-            return (
-              <div
-                key={item.kode_barang || index}
-                className={` ${item.is_bonus_luar ? 'bg-purple-50':'bg-white'}  min-w-full p-4 sm:p-6 w-full rounded-3xl border border-slate-200/90 shadow-sm space-y-4`}
-              >
-                {/* CONTAINER CARD UTAMA */}
-                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
-                  
-                  {/* BAGIAN KIRI: Info Barang, Satuan, Harga Satuan, & Bonus */}
-                  <div className="space-y-3.5 flex-1 min-w-0">
-                    
-                    {/* Kode Barang Badge */}
-                    <div className="flex items-center gap-2">
-                      <span className="inline-block text-xs font-mono font-extrabold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
-                        #{item.kode_barang}
-                      </span>
-                      {item.is_bonus_luar && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-violet-100 text-violet-800 rounded-md border border-violet-200 uppercase">
-                          Bonus Luar
-                        </span>
-                      )}
-                    </div>
+  {/* LIST STATE */}
+  {!dataInputBarang.ListPesanan || dataInputBarang.ListPesanan.length === 0 ? (
+    <div className="bg-white border-2 border-dashed border-slate-300 rounded-2xl p-10 sm:p-16 text-center">
+      <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        </svg>
+      </div>
+      <p className="text-base sm:text-lg font-semibold text-slate-700">Belum ada barang di daftar belanja</p>
+      <p className="text-sm text-slate-500 mt-1">Cari dan pilih produk di atas untuk menambahkan</p>
+    </div>
+  ) : (
+    <div className="space-y-3 sm:space-y-4">
+      {dataInputBarang.ListPesanan.map((item, index) => {
+        const harga = Number(item.harga_satuan) || 0;
+        const diskonRp = Number(item.diskon_distributor_rp) || 0;
+        const hargaNett = Math.max(0, harga - diskonRp);
+        const qty = Number(item.jumlah) || 0;
+        const subtotal = hargaNett * qty;
 
-                    {/* Nama Barang */}
-                    <h3 className="font-extrabold text-slate-900 text-lg sm:text-xl leading-snug break-words">
-                      {item.nama_barang}
-                    </h3>
+        const rasioUtama = getRasioAktif(item);
+        const rasioBonus = getRasioBonus(item);
+        const bonus = Number(item.qty_bonus) || 0;
+        const totalPcsMasuk = (qty * rasioUtama) + (bonus * rasioBonus);
 
-                    {/* Status / Stok Badge */}
-                    <div>
-                      <span
-                        className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${
-                          item.status === 'BARANG BARU'
-                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        }`}
+        return (
+          <div
+            key={item.kode_barang || index}
+            className={`${item.is_bonus_luar ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200'} w-full p-4 sm:p-6 rounded-2xl border shadow-sm`}
+          >
+            {/* CONTAINER CARD UTAMA */}
+            <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5 lg:gap-8">
+
+              {/* BAGIAN KIRI: Info Barang, Satuan, Harga Satuan, & Bonus */}
+              <div className="space-y-3.5 flex-1 min-w-0">
+
+                {/* Kode Barang + Status */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="inline-block text-xs font-mono font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
+                    #{item.kode_barang}
+                  </span>
+                  {item.is_bonus_luar && (
+                    <span className="text-[11px] font-semibold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md border border-amber-200">
+                      Bonus Luar
+                    </span>
+                  )}
+                  <span
+                    className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-md border ${
+                      item.status === 'BARANG BARU'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    }`}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        item.status === 'BARANG BARU' ? 'bg-amber-500' : 'bg-emerald-500'
+                      }`}
+                    ></span>
+                    {item.status || ' RESTOK'}
+                  </span>
+                </div>
+
+                {/* Nama Barang */}
+                <h3 className="font-semibold text-slate-900 text-lg sm:text-xl leading-snug break-words">
+                  {item.nama_barang}
+                </h3>
+
+                {/* Dropdown Satuan & Input Harga Beli */}
+                {!item.is_bonus_luar && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-slate-600 flex items-center gap-1.5">
+                        Satuan Beli
+                        <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4" />
+                        </svg>
+                      </label>
+                      <select
+                        value={
+                          String(
+                            item.id_satuan ??
+                            item.list_satuan?.[0]?.id_satuan ??
+                            item.list_satuan?.[0]?.id ??
+                            item.list_satuan?.[0]?.nama_satuan ??
+                            ''
+                          )
+                        }
+                        onChange={(e) => ganti_satuan_belanja(e.target.value, item)}
+                        disabled
+                        title="Satuan beli dikunci ke satuan terbesar"
+                        className="w-full h-12 px-3 text-base sm:text-sm font-medium text-slate-600 bg-slate-100 border border-slate-200 rounded-xl outline-none cursor-not-allowed"
                       >
-                        <span
-                          className={`w-2 h-2 rounded-full ${
-                            item.status === 'BARANG BARU' ? 'bg-amber-500' : 'bg-emerald-500'
-                          }`}
-                        ></span>
-                        {item.status || ' RESTOK'}
-                      </span>
+                        {item.list_satuan?.map((s, idx) => (
+                          <option
+                            key={s.id_satuan || s.id || `${s.nama_satuan}-${idx}`}
+                            value={s.id_satuan || s.id || s.nama_satuan}
+                          >
+                            {s.nama_satuan} ({s.rasio_ke_pcs || s.jumlah_konversi || 1} PCS)
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
-                    {/* Dropdown Satuan & Input Harga Beli */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                      <div className={`${item.is_bonus_luar ? 'hidden':'block'} space-y-1`}>
-                        <label className="text-xs font-extrabold text-slate-600 block">Satuan Beli 🔒</label>
-                        <select
-                          value={
-                            String(
-                              item.id_satuan ??
-                              item.list_satuan?.[0]?.id_satuan ??
-                              item.list_satuan?.[0]?.id ??
-                              item.list_satuan?.[0]?.nama_satuan ??
-                              ''
-                            )
-                          }
-                          onChange={(e) => ganti_satuan_belanja(e.target.value, item)}
-                          disabled
-                          title="Satuan beli dikunci ke satuan terbesar"
-                          className="w-full h-12 px-3 text-sm font-bold text-slate-800 bg-slate-200 border border-slate-300 rounded-xl outline-none cursor-not-allowed opacity-80"
-                        >
-                          {item.list_satuan?.map((s, idx) => (
-                            <option
-                              key={s.id_satuan || s.id || `${s.nama_satuan}-${idx}`}
-                              value={s.id_satuan || s.id || s.nama_satuan}
-                            >
-                              {s.nama_satuan} ({s.rasio_ke_pcs || s.jumlah_konversi || 1} PCS)
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className={` ${item.is_bonus_luar ? 'hidden':'block'} space-y-1`}>
-                        <label className="text-xs font-extrabold text-slate-600 block">Harga Beli Satuan</label>
-                        <div className="flex items-center border border-slate-300 rounded-xl overflow-hidden bg-slate-50 focus-within:ring-4 focus-within:ring-indigo-500/20 focus-within:border-indigo-600">
-                          <span className="bg-slate-200 px-3 h-12 flex items-center text-xs text-slate-700 font-extrabold border-r border-slate-300">
-                            Rp
-                          </span>
-                          <input
-                            value={
-                              item?.harga_satuan
-                                ? Number(item.harga_satuan).toLocaleString('id-ID')
-                                : ''
-                            }
-                            onChange={(e) => harga_satuan_belanja(e, item)}
-                            placeholder="0"
-                            type="text"
-                            inputMode="numeric"
-                            className="w-full h-12 px-3 text-base font-black text-slate-900 outline-none bg-transparent"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Box Bonus Gratis (Dengan Qty & Dropdown Satuan Bonus Fleksibel) */}
-                    <div className={`${item.ada_fitur_bonus == 1 ? 'block':'hidden'} p-3 bg-purple-50/70 border border-purple-200/80 rounded-2xl flex flex-wrap items-center justify-between gap-3`}>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-extrabold text-purple-900">Bonus:</span>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-slate-600 block">Harga Beli Satuan</label>
+                      <div className="flex items-center border border-slate-300 rounded-xl overflow-hidden bg-white focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-600">
+                        <span className="bg-slate-100 px-3 h-12 flex items-center text-sm text-slate-600 font-semibold border-r border-slate-300">
+                          Rp
+                        </span>
                         <input
-                          value={item.qty_bonus ?? ''}
-                          onChange={(e) => ubah_bonus_belanjaan(e, item)}
-                          type="number"
-                          inputMode="numeric"
-                          min="0"
-                          placeholder="0"
-                          className="w-16 h-10 px-2 border border-purple-300 rounded-xl text-center text-sm font-black text-slate-900 bg-white outline-none focus:ring-2 focus:ring-purple-400"
-                        />
-                        <select
                           value={
-                            String(
-                              item.id_satuan_bonus ??
-                              item.id_satuan ??
-                              item.list_satuan?.[0]?.id_satuan ??
-                              item.list_satuan?.[0]?.id ??
-                              item.list_satuan?.[0]?.nama_satuan ??
-                              ''
-                            )
+                            item?.harga_satuan
+                              ? Number(item.harga_satuan).toLocaleString('id-ID')
+                              : ''
                           }
-                          onChange={(e) => handleSatuanBonusChange(e.target.value, item)}
-                          className="h-10 px-2 border border-purple-300 rounded-xl text-xs font-bold text-purple-900 bg-white outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer"
-                        >
-                          {item.list_satuan?.map((s, idx) => (
-                            <option
-                              key={s.id_satuan || s.id || `${s.nama_satuan}-${idx}`}
-                              value={s.id_satuan || s.id || s.nama_satuan}
-                            >
-                              {s.nama_satuan} ({s.rasio_ke_pcs || s.jumlah_konversi || 1} PCS)
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(e) => harga_satuan_belanja(e, item)}
+                          placeholder="0"
+                          type="text"
+                          inputMode="numeric"
+                          className="w-full h-12 px-3 text-base font-semibold text-slate-900 outline-none bg-transparent tabular-nums"
+                        />
                       </div>
-                      <span className="text-xs font-extrabold text-purple-700 bg-purple-100/90 px-3 py-1 rounded-full">
-                        Gratis
-                      </span>
                     </div>
                   </div>
+                )}
 
-                  {/* BAGIAN KANAN: Qty, Disk (%), Disk (Rp), Subtotal & Tombol Hapus */}
-                  <div className="flex flex-wrap sm:flex-nowrap items-center justify-between lg:justify-end gap-3 sm:gap-4 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100 shrink-0">
-                    
+                {/* Box Bonus Gratis (Dengan Qty & Dropdown Satuan Bonus Fleksibel) */}
+                {item.ada_fitur_bonus == 1 && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex flex-wrap items-center justify-between gap-2.5">
+                    <span className="flex items-center gap-1.5 text-sm font-semibold text-amber-800">
+                      <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                      </svg>
+                      Bonus
+                    </span>
+                    <span className="text-xs font-semibold text-amber-800 bg-white border border-amber-200 px-2.5 py-1 rounded-full">
+                      Gratis
+                    </span>
+                    <div className="w-full flex items-center gap-2">
+                      <input
+                        value={item.qty_bonus ?? ''}
+                        onChange={(e) => ubah_bonus_belanjaan(e, item)}
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        placeholder="0"
+                        className="w-20 h-11 px-2 border border-slate-300 rounded-lg text-center text-base sm:text-sm font-semibold text-slate-900 bg-white outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                      />
+                      <select
+                        value={
+                          String(
+                            item.id_satuan_bonus ??
+                            item.id_satuan ??
+                            item.list_satuan?.[0]?.id_satuan ??
+                            item.list_satuan?.[0]?.id ??
+                            item.list_satuan?.[0]?.nama_satuan ??
+                            ''
+                          )
+                        }
+                        onChange={(e) => handleSatuanBonusChange(e.target.value, item)}
+                        className="flex-1 min-w-0 sm:flex-none sm:w-48 h-11 px-2 border border-slate-300 rounded-lg text-base sm:text-sm font-medium text-slate-800 bg-white outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 cursor-pointer"
+                      >
+                        {item.list_satuan?.map((s, idx) => (
+                          <option
+                            key={s.id_satuan || s.id || `${s.nama_satuan}-${idx}`}
+                            value={s.id_satuan || s.id || s.nama_satuan}
+                          >
+                            {s.nama_satuan} ({s.rasio_ke_pcs || s.jumlah_konversi || 1} PCS)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* BAGIAN KANAN: Qty, Disk (%), Disk (Rp), Subtotal & Tombol Hapus */}
+              <div className="flex flex-col gap-4 pt-4 lg:pt-0 border-t lg:border-t-0 lg:border-l border-slate-100 lg:pl-8 lg:w-[24rem] shrink-0">
+
+                {!item.is_bonus_luar && (
+                  <div className="grid grid-cols-[1fr_1fr_1.5fr] gap-2.5">
                     {/* Input Qty */}
-                    <div className={`${item.is_bonus_luar ? 'hidden':'block'} space-y-1 text-center`}>
-                      <label className="text-xs font-extrabold text-slate-500 block">Qty</label>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-slate-600 block">Qty</label>
                       <input
                         value={item.jumlah || ''}
                         onChange={(e) => tambah_jumlah_belanjaan(e, item)}
@@ -854,311 +915,331 @@ export function ListBelanjaBarang({ IsScroll }) {
                         inputMode="numeric"
                         placeholder="0"
                         min="0"
-                        className="w-16 sm:w-20 h-12 border border-slate-300 rounded-xl text-center text-base font-black text-slate-900 outline-none bg-slate-50 focus:bg-white focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-600"
+                        className="w-full h-12 px-2 border border-slate-300 rounded-xl text-center text-base font-semibold text-slate-900 outline-none bg-white focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
                       />
                     </div>
 
                     {/* Input Disk (%) */}
-                    <div className={`${item.is_bonus_luar ? 'hidden':'block'} space-y-1 text-center`}>
-                      <label className="text-xs font-extrabold text-rose-500 block">Disk (%)</label>
-                      <input
-                        value={item.persentase_diskon_distributor ?? ''}
-                        onChange={(e) => ubahDiskonPersen(e, item)}
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        placeholder="0"
-                        className="w-16 sm:w-20 h-12 border border-rose-200 bg-rose-50/50 rounded-xl text-center text-base font-black text-rose-900 outline-none focus:ring-2 focus:ring-rose-400"
-                      />
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-slate-600 block">Disk (%)</label>
+                      <div className="relative">
+                        <input
+                          value={item.persentase_diskon_distributor ?? ''}
+                          onChange={(e) => ubahDiskonPersen(e, item)}
+                          onWheel={(e) => e.currentTarget.blur()}
+                          type="number"
+                          inputMode="decimal"
+                          step="any"
+                          placeholder="0"
+                          className="w-full h-12 pl-2 pr-6 border border-slate-300 rounded-xl text-right text-base font-semibold text-slate-900 outline-none bg-white focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                        />
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">%</span>
+                      </div>
                     </div>
 
                     {/* Input Disk (Rp) */}
-                    <div className={`${item.is_bonus_luar ? 'hidden':'block'} space-y-1 text-center`}>
-                      <label className="text-xs font-extrabold text-rose-500 block">Disk (Rp)</label>
-                      <input
-                        value={
-                          item?.diskon_distributor_rp
-                            ? Number(item.diskon_distributor_rp).toLocaleString('id-ID')
-                            : ''
-                        }
-                        onChange={(e) => ubahDiskonRp(e, item)}
-                        placeholder="0"
-                        type="text"
-                        inputMode="numeric"
-                        className="w-24 sm:w-28 h-12 px-2 border border-rose-200 bg-rose-50/50 rounded-xl text-center text-base font-black text-rose-900 outline-none focus:ring-2 focus:ring-rose-400"
-                      />
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-slate-600 block">Disk (Rp)</label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">Rp</span>
+                        <input
+                          value={
+                            item?.diskon_distributor_rp
+                              ? Number(item.diskon_distributor_rp).toLocaleString('id-ID')
+                              : ''
+                          }
+                          onChange={(e) => ubahDiskonRp(e, item)}
+                          placeholder="0"
+                          type="text"
+                          inputMode="numeric"
+                          className="w-full h-12 pl-8 pr-2 border border-slate-300 rounded-xl text-right text-base font-semibold text-slate-900 outline-none bg-white focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 tabular-nums"
+                        />
+                      </div>
                     </div>
+                  </div>
+                )}
 
-                    {/* Subtotal */}
-                    <div className="space-y-1 text-right px-1 min-w-[110px]">
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
-                        SUBTOTAL
-                      </span>
-                      <span className="text-lg sm:text-xl font-black text-slate-900 block whitespace-nowrap">
-                        Rp {subtotal.toLocaleString('id-ID')}
-                      </span>
-                      <span className="bg-green-50 text-green-900 text-[11px] font-extrabold block">
-                        (+{totalPcsMasuk} PCS Masuk)
-                      </span>
-                    </div>
-
-                    {/* Tombol Hapus */}
-                    <button
-                      type="button"
-                      onClick={() => hapusItem(item)}
-                      aria-label="Hapus item"
-                      className="h-12 px-3.5 flex items-center justify-center gap-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 active:scale-95 rounded-xl border border-rose-200 transition-all cursor-pointer text-sm font-extrabold shrink-0"
-                    >
-                      <span>🗑</span> Hapus
-                    </button>
+                {/* Subtotal & Hapus */}
+                <div className="flex items-end justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="text-xs text-slate-500 block">Subtotal</span>
+                    <span className="text-xl font-bold text-slate-900 block whitespace-nowrap tabular-nums">
+                      Rp {subtotal.toLocaleString('id-ID')}
+                    </span>
+                    <span className="text-xs font-medium text-emerald-700 block">
+                      (+{totalPcsMasuk} PCS Masuk)
+                    </span>
                   </div>
 
+                  <button
+                    type="button"
+                    onClick={() => hapusItem(item)}
+                    aria-label="Hapus item"
+                    className="h-12 px-4 flex items-center justify-center gap-1.5 text-rose-600 bg-white hover:bg-rose-50 active:bg-rose-100 rounded-xl border border-rose-200 transition-colors cursor-pointer text-sm font-semibold shrink-0"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-1 12a2 2 0 01-2 2H8a2 2 0 01-2-2L5 7m5 4v6m4-6v6M9 7V4h6v3M4 7h16" />
+                    </svg>
+                    <span>Hapus</span>
+                  </button>
                 </div>
               </div>
-            );
-          })}
+
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+
+  {/* PEMBAYARAN TOKO SECTION */}
+  {dataInputBarang.ListPesanan?.length > 0 && (
+    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 sm:p-6 lg:p-8 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
+        <div className="min-w-0">
+          <h3 className="text-lg sm:text-xl font-semibold text-slate-900 tracking-tight">
+            Pembayaran ke Supplier
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5 leading-snug">
+            Isi nominal yang dibayar toko sekarang. Sisanya dicatat sebagai hutang.
+          </p>
         </div>
-      )}
+        <div>
+          <span
+            className={`inline-block shrink-0 text-xs sm:text-sm font-semibold px-4 py-1.5 rounded-lg border ${
+              sisaHutang > 0 && !dibayarMelebihi
+                ? 'bg-amber-50 text-amber-800 border-amber-300'
+                : 'bg-emerald-50 text-emerald-800 border-emerald-300'
+            }`}
+          >
+            {sisaHutang > 0 && !dibayarMelebihi ? 'HUTANG' : 'LUNAS'}
+          </span>
+        </div>
+      </div>
 
-      {/* PEMBAYARAN TOKO SECTION */}
-      {dataInputBarang.ListPesanan?.length > 0 && (
-        <section className="bg-white border border-slate-200/90 rounded-3xl shadow-sm p-4 sm:p-6 lg:p-8 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
-            <div className="min-w-0">
-              <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Pembayaran ke Supplier
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5 leading-snug">
-                Isi nominal yang dibayar toko sekarang. Sisanya dicatat sebagai hutang.
-              </p>
-            </div>
-            <div>
-              <span
-                className={`inline-block shrink-0 text-xs sm:text-sm font-extrabold px-4 py-1.5 rounded-xl border-2 ${
-                  sisaHutang > 0 && !dibayarMelebihi
-                    ? 'bg-amber-50 text-amber-800 border-amber-300'
-                    : 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                }`}
-              >
-                {sisaHutang > 0 && !dibayarMelebihi ? 'HUTANG' : 'LUNAS'}
-              </span>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-3">
+          <label className="text-sm font-medium text-slate-700 block">
+            Dibayar Toko Sekarang
+          </label>
+          <div
+            className={`flex items-center border rounded-xl overflow-hidden bg-white h-14 sm:h-16 ${
+              dibayarMelebihi
+                ? 'border-rose-500 ring-4 ring-rose-500/20'
+                : 'border-slate-300 focus-within:ring-4 focus-within:ring-emerald-500/20 focus-within:border-emerald-600'
+            }`}
+          >
+            <span className="bg-slate-100 px-4 h-full flex items-center text-base sm:text-lg text-slate-600 font-semibold border-r border-slate-300">
+              Rp
+            </span>
+            <input
+              value={
+                faktur.dibayar !== '' && faktur.dibayar != null
+                  ? Number(faktur.dibayar).toLocaleString('id-ID')
+                  : ''
+              }
+              onChange={ubahDibayar}
+              inputMode="numeric"
+              placeholder="0"
+              type="text"
+              className="w-full h-full px-3 text-xl sm:text-2xl font-semibold text-slate-900 outline-none bg-transparent tabular-nums"
+            />
           </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-3">
-              <label className="text-sm font-extrabold text-slate-800 block">
-                Dibayar Toko Sekarang
-              </label>
-              <div
-                className={`flex items-center border-2 rounded-2xl overflow-hidden bg-white h-14 sm:h-16 ${
-                  dibayarMelebihi
-                    ? 'border-rose-500 ring-4 ring-rose-500/20'
-                    : 'border-slate-300 focus-within:ring-4 focus-within:ring-emerald-500/20 focus-within:border-emerald-600'
-                }`}
-              >
-                <span className="bg-slate-100 px-4 h-full flex items-center text-base sm:text-lg text-slate-700 font-extrabold border-r-2 border-slate-300">
-                  Rp
-                </span>
-                <input
-                  value={
-                    faktur.dibayar !== '' && faktur.dibayar != null
-                      ? Number(faktur.dibayar).toLocaleString('id-ID')
-                      : ''
-                  }
-                  onChange={ubahDibayar}
-                  inputMode="numeric"
-                  placeholder="0"
-                  type="text"
-                  className="w-full h-full px-3 text-xl sm:text-2xl font-black text-slate-900 outline-none bg-transparent"
-                />
-              </div>
-              {dibayarMelebihi && (
-                <p className="text-sm text-rose-600 font-bold">
-                  Melebihi total belanja (Rp {totalDenganPpn.toLocaleString('id-ID')}).
-                </p>
-              )}
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={bayarLunas}
-                  className="h-12 sm:h-14 text-sm sm:text-base font-extrabold px-4 rounded-2xl border-2 border-emerald-400 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all cursor-pointer"
-                >
-                  Bayar Lunas
-                </button>
-                <button
-                  type="button"
-                  onClick={hutangPenuh}
-                  className="h-12 sm:h-14 text-sm sm:text-base font-extrabold px-4 rounded-2xl border-2 border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
-                >
-                  Hutang Semua
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-sm font-extrabold text-slate-800 block">
-                Jatuh Tempo <span className="font-normal text-slate-500">(opsional)</span>
-              </label>
-              <input
-                type="date"
-                value={faktur.jatuh_tempo || ''}
-                min={tanggalMinJatuhTempo}
-                onChange={ubahJatuhTempo}
-                disabled={sisaHutang <= 0}
-                className="w-full h-14 sm:h-16 px-4 border-2 border-slate-300 rounded-2xl text-base sm:text-lg font-bold text-slate-900 outline-none bg-white focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 cursor-pointer"
-              />
-            </div>
-          </div>
-
-          {/* SUMMARY BOX & TOMBOL PROSES */}
-          <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-slate-500 block uppercase tracking-wider">
-                Total Belanja + PPN:
-              </span>
-              <span className="text-2xl sm:text-3xl font-black text-slate-900 block">
-                Rp {totalDenganPpn.toLocaleString('id-ID')}
-              </span>
-              {sisaHutang > 0 && (
-                <span className="text-xs font-bold text-amber-700 block">
-                  Sisa Hutang: Rp {sisaHutang.toLocaleString('id-ID')}
-                </span>
-              )}
-            </div>
-
+          {dibayarMelebihi && (
+            <p className="text-sm text-rose-600 font-medium">
+              Melebihi total belanja (Rp {totalDenganPpn.toLocaleString('id-ID')}).
+            </p>
+          )}
+          <div className="grid grid-cols-2 gap-3 pt-1">
             <button
               type="button"
-              onClick={proses}
-              className="h-14 sm:h-16 px-8 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-base sm:text-lg rounded-2xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+              onClick={bayarLunas}
+              className="h-12 sm:h-14 text-sm sm:text-base font-semibold px-4 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 active:bg-emerald-200 transition-colors cursor-pointer"
             >
-              <span>SIMPAN TRANSAKSI BELANJA</span>
+              Bayar Lunas
+            </button>
+            <button
+              type="button"
+              onClick={hutangPenuh}
+              className="h-12 sm:h-14 text-sm sm:text-base font-semibold px-4 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 active:bg-slate-100 transition-colors cursor-pointer"
+            >
+              Hutang Semua
             </button>
           </div>
-        </section>
-      )}
+        </div>
 
-      {/* ========================================== */}
-      {/* FIXED INSET-0 POPUP MODAL PENCARIAN BARANG */}
-      {/* ========================================== */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150">
-            
-            {/* Modal Header */}
-            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between gap-3 shrink-0">
-              <div>
-                <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                  Cari & Tambah Barang Belanja
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Pilih barang untuk dimasukkan sebagai item belanja atau bonus
-                </p>
-              </div>
+        <div className="space-y-3">
+          <label className="text-sm font-medium text-slate-700 block">
+            Jatuh Tempo <span className="font-normal text-slate-500">(opsional)</span>
+          </label>
+          <input
+            type="date"
+            value={faktur.jatuh_tempo || ''}
+            min={tanggalMinJatuhTempo}
+            onChange={ubahJatuhTempo}
+            disabled={sisaHutang <= 0}
+            className="w-full h-14 sm:h-16 px-4 border border-slate-300 rounded-xl text-base sm:text-lg font-medium text-slate-900 outline-none bg-white focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-600 disabled:bg-slate-100 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed"
+          />
+        </div>
+      </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setHasilCari([]);
-                  setInputCari('');
-                }}
-                className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-200/60 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer font-bold"
-              >
-                ✕
-              </button>
-            </div>
+      {/* SUMMARY BOX & TOMBOL PROSES (menempel di bawah layar pada mobile) */}
+      <div className="fixed inset-x-0 bottom-0 z-40 bg-white border-t border-slate-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(15,23,42,0.08)] lg:static lg:z-auto lg:bg-transparent lg:shadow-none lg:px-0 lg:pb-0 lg:pt-6 lg:border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="space-y-0.5">
+          <span className="text-xs sm:text-sm font-medium text-slate-500 block">
+            Total Belanja + PPN
+          </span>
+          <span className="text-2xl sm:text-3xl font-bold text-emerald-700 block tabular-nums">
+            Rp {totalDenganPpn.toLocaleString('id-ID')}
+          </span>
+          {sisaHutang > 0 && (
+            <span className="text-xs sm:text-sm font-medium text-amber-700 block">
+              Sisa Hutang: Rp {sisaHutang.toLocaleString('id-ID')}
+            </span>
+          )}
+        </div>
 
-            {/* Form Input Cari dalam Modal */}
-            <div className="p-4 border-b border-slate-100 bg-white shrink-0">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  autoFocus
-                  placeholder="Ketik nama atau kode barang..."
-                  value={inputCari}
-                  onChange={(e) => setInputCari(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleCariBarang();
-                    }
-                  }}
-                  className="flex-1 h-11 px-3.5 text-sm font-semibold border border-slate-300 rounded-xl bg-slate-50/80 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={handleCariBarang}
-                  disabled={isSearching}
-                  className="px-6 h-11 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs sm:text-sm rounded-xl transition-all cursor-pointer shadow-sm shrink-0 flex items-center justify-center"
-                >
-                  {isSearching ? 'Mencari...' : 'Cari'}
-                </button>
-              </div>
-            </div>
+        <button
+          type="button"
+          onClick={proses}
+          className="h-12 sm:h-14 px-6 sm:px-8 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-sm sm:text-base rounded-xl shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-2"
+        >
+          <span>SIMPAN TRANSAKSI BELANJA</span>
+        </button>
+      </div>
+    </section>
+  )}
 
-            {/* List Hasil Pencarian dalam Modal */}
-            <div className="p-4 overflow-y-auto flex-1 divide-y divide-slate-100">
-              {hasilCari.length > 0 ? (
-                hasilCari.map((barang, idx) => (
-                  <div
-                    key={barang.kode_barang || idx}
-                    className="py-3 flex items-center justify-between gap-3 hover:bg-indigo-50/50 px-2 rounded-xl transition-colors"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200">
-                          {barang.kode_barang}
-                        </span>
-                        <span className="text-xs font-semibold text-emerald-700">
-                          Stok: {barang.stok_pcs || 0} PCS
-                        </span>
-                      </div>
-                      <h4 className="font-bold text-slate-800 text-sm mt-1 truncate">
-                        {barang.nama_barang}
-                      </h4>
-                    </div>
+  {/* ========================================== */}
+  {/* POPUP MODAL PENCARIAN BARANG (bottom sheet di mobile) */}
+  {/* ========================================== */}
+  {isModalOpen && (
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center sm:p-4">
+      <div className="bg-white w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh] pb-[env(safe-area-inset-bottom)] animate-in fade-in zoom-in-95 duration-150">
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => tambahBarangBonus(barang)}
-                        className="px-3 py-2 bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs rounded-xl transition-all active:scale-95 cursor-pointer shadow-xs"
-                      >
-                        + Bonus
-                      </button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="py-12 text-center text-slate-400 space-y-1">
-                  <p className="text-sm font-semibold">
-                    {isSearching ? 'Sedang memuat data...' : 'Ketik nama barang dan klik Cari'}
-                  </p>
-                </div>
-              )}
-            </div>
+        {/* Handle (mobile) */}
+        <div className="sm:hidden flex justify-center pt-2 shrink-0">
+          <span className="w-10 h-1 rounded-full bg-slate-300" />
+        </div>
 
-            {/* Modal Footer */}
-            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex justify-end shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setHasilCari([]);
-                  setInputCari('');
-                }}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 transition-colors"
-              >
-                Batal
-              </button>
-            </div>
+        {/* Modal Header */}
+        <div className="px-5 py-4 border-b border-emerald-100 bg-emerald-50/60 flex items-center justify-between gap-3 shrink-0">
+          <div className="min-w-0">
+            <h3 className="text-base sm:text-lg font-semibold text-slate-900">
+              Cari & Tambah Barang Belanja
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Pilih barang untuk dimasukkan sebagai item belanja atau bonus
+            </p>
+          </div>
 
+          <button
+            type="button"
+            aria-label="Tutup"
+            onClick={() => {
+              setIsModalOpen(false);
+              setHasilCari([]);
+              setInputCari('');
+            }}
+            className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full hover:bg-emerald-100 active:bg-emerald-100 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Form Input Cari dalam Modal */}
+        <div className="p-4 border-b border-slate-100 bg-white shrink-0">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              autoFocus
+              placeholder="Ketik nama atau kode barang..."
+              value={inputCari}
+              onChange={(e) => setInputCari(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleCariBarang();
+                }
+              }}
+              className="flex-1 min-w-0 h-11 px-3.5 text-base sm:text-sm font-medium border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 transition-all"
+            />
+            <button
+              type="button"
+              onClick={handleCariBarang}
+              disabled={isSearching}
+              className="px-5 h-11 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-colors cursor-pointer shrink-0 flex items-center justify-center"
+            >
+              {isSearching ? 'Mencari...' : 'Cari'}
+            </button>
           </div>
         </div>
-      )}
 
-    </main>
+        {/* List Hasil Pencarian dalam Modal */}
+        <div className="p-3 sm:p-4 overflow-y-auto flex-1 divide-y divide-slate-100">
+          {hasilCari.length > 0 ? (
+            hasilCari.map((barang, idx) => (
+              <div
+                key={barang.kode_barang || idx}
+                className="py-3 flex items-center justify-between gap-3 hover:bg-emerald-50/50 px-2 rounded-xl transition-colors"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-mono font-semibold px-2 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200">
+                      {barang.kode_barang}
+                    </span>
+                    <span className="text-xs font-medium text-emerald-700">
+                      Stok: {barang.stok_pcs || 0} PCS
+                    </span>
+                  </div>
+                  <h4 className="font-semibold text-slate-800 text-sm mt-1 truncate">
+                    {barang.nama_barang}
+                  </h4>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => tambahBarangBonus(barang)}
+                    className="h-10 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer"
+                  >
+                    + Bonus
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="py-12 text-center text-slate-400 space-y-1">
+              <p className="text-sm font-medium">
+                {isSearching ? 'Sedang memuat data...' : 'Ketik nama barang dan klik Cari'}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex justify-end shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              setIsModalOpen(false);
+              setHasilCari([]);
+              setInputCari('');
+            }}
+            className="h-11 sm:h-10 px-5 text-sm font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200/60 transition-colors"
+          >
+            Batal
+          </button>
+        </div>
+
+      </div>
+    </div>
+  )}
+
+</main>
+
   );
 }
 

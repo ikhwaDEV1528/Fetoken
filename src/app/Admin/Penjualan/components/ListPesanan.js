@@ -53,9 +53,9 @@ export function ListPesanan() {
 
     const isBonus = barangSelected?.ada_fitur_bonus
 
-    if(isBonus == 0) {
+    if (isBonus == 0) {
       return alert('Barang ini belum di jadikan sebagai bonus! , pergi ke detail barang > edit > Terapkan bonus.')
-    } 
+    }
 
     if (barangAda) {
       // Jika barang sudah ada, cukup tambahkan qty_bonus +1
@@ -305,213 +305,254 @@ export function ListPesanan() {
 
   return (
     <main className="w-full max-w-6xl mx-auto p-4 -mt-15 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
-      
+
       {/* DAFTAR PESANAN CONTAINER */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-        
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+
         {/* HEADER SECTION & TOMBOL BUKA MODAL */}
-        <div className="px-4 sm:px-6 py-4 border-b border-slate-100 bg-slate-50/80 flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="text-lg sm:text-xl font-bold text-slate-900 truncate">
-              Daftar Pesanan
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5 truncate">
-              Atur satuan dan jumlah barang transaksi
-            </p>
+        <div className="px-4 sm:px-6 py-4 border-b border-emerald-100 bg-emerald-50/60 flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0 flex items-center gap-3">
+            <div className="hidden sm:flex w-10 h-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-slate-900 truncate">
+                Daftar Pesanan
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5 truncate">
+                Atur satuan dan jumlah barang transaksi
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="px-3.5 py-2 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
+              className="flex-1 sm:flex-none h-11 sm:h-10 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-sm rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              <span>+ Tambah Bonus Barang Luar</span>
+              <span>Tambah Bonus Barang Luar</span>
             </button>
 
-            <span className="shrink-0 px-3 py-1 text-xs sm:text-sm font-bold bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100">
+            <span className="shrink-0 h-11 sm:h-10 px-3.5 inline-flex items-center text-sm font-semibold bg-white text-emerald-700 rounded-xl border border-emerald-200">
               {dataInputBarang?.ListPesanan?.length ?? 0} Item
             </span>
           </div>
         </div>
 
-        {/* SCROLLABLE LIST ITEMS */}
-        <div className={`${dataInputBarang?.ListPesanan?.length === 0 ? 'hidden' : 'block'} flex flex-col gap-10 max-h-[630px] overflow-y-auto divide-y divide-slate-100 p-3 sm:p-5 space-y-4 sm:space-y-0`}>
+        {/* LIST ITEMS (scroll internal hanya di layar besar, di mobile ikut scroll halaman) */}
+        <div className={`${dataInputBarang?.ListPesanan?.length === 0 ? 'hidden' : 'flex'} flex-col gap-3 lg:max-h-[630px] lg:overflow-y-auto p-3 sm:p-5 bg-slate-50/50`}>
           {dataInputBarang?.ListPesanan?.length > 0 ? (
             dataInputBarang.ListPesanan.map((item, index) => (
               <div
                 key={item.kode_barang || index}
-                className={`${item.is_bonus_luar ? 'bg-purple-50':'bg-white'} p-3.5 sm:p-4 rounded-xl hover:bg-slate-50/80 transition-colors flex flex-col lg:flex-row lg:items-center justify-between gap-4 border border-slate-200/60 lg:border-transparent my-2 sm:my-0`}
+                className={`${item.is_bonus_luar ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200 hover:border-emerald-300'} p-4 sm:p-5 rounded-xl border shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-colors flex flex-col lg:flex-row lg:items-start justify-between gap-4 lg:gap-8`}
               >
-                
-                <div className="space-y-2 flex-1 min-w-0">
+
+                {/* ===== KIRI: INFO BARANG ===== */}
+                <div className="space-y-3 flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-mono font-bold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md border border-slate-200 shrink-0">
+                    <span className="text-xs font-mono font-semibold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md border border-slate-200 shrink-0">
                       {item.kode_barang}
                     </span>
                     {item.is_bonus_luar && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-violet-100 text-violet-800 rounded-md border border-violet-200 uppercase">
+                      <span className="text-[11px] font-semibold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md border border-amber-200">
                         Bonus Luar (HANYA BONUS!)
                       </span>
                     )}
                   </div>
 
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug break-words">
-                    {item.nama_barang}
+                  <div>
+                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 leading-snug break-words">
+                      {item.nama_barang}
+                    </h3>
                     <div className="mt-1.5 flex items-center text-xs sm:text-sm">
                       {item.stok_pcs > 10 ? (
-                        <span className="text-emerald-700 font-semibold flex items-center gap-1.5 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200/60">
+                        <span className="text-emerald-700 font-medium flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                           Stok: {item.stok_pcs} pcs
                         </span>
                       ) : item.stok_pcs == 0 ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold animate-pulse">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold">
                           Stok habis, Tidak bisa proses barang ini!
                         </span>
                       ) : (
-                        <span className="text-amber-700 font-semibold flex items-center gap-1.5 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200/60 animate-pulse">
+                        <span className="text-amber-700 font-medium flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
                           Stok: {item.stok_pcs} pcs (Segera Restok)
                         </span>
                       )}
                     </div>
-                  </h3>
-
-                  <div className={` ${item.is_bonus_luar ? 'hidden':'block'} flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 pt-1`}>
-                    <label className="text-xs sm:text-sm font-semibold text-slate-500">Satuan Beli:</label>
-                    <select
-                      value={item.id_satuan ?? ''}
-                      onChange={(e) => ganti_satuan(e.target.value, item)}
-                      className="w-full sm:w-auto h-10 px-3 text-xs sm:text-sm font-bold text-slate-800 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all cursor-pointer"
-                    >
-                      {item.list_satuan?.map((satuan) => (
-                        <option key={satuan.id_satuan || satuan.id} value={satuan.id_satuan || satuan.id}>
-                          {satuan.nama_satuan} ({satuan.jumlah_konversi || satuan.rasio_ke_pcs || 1} PCS) - Rp {Number(satuan.harga_jual).toLocaleString('id-ID')}
-                        </option>
-                      ))}
-                    </select>
                   </div>
+
+                  {!item.is_bonus_luar && (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+                      <label className="text-xs sm:text-sm font-medium text-slate-600">Satuan Beli</label>
+                      <select
+                        value={item.id_satuan ?? ''}
+                        onChange={(e) => ganti_satuan(e.target.value, item)}
+                        className="w-full sm:w-auto sm:min-w-[260px] h-11 sm:h-10 px-3 text-base sm:text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 transition-all cursor-pointer"
+                      >
+                        {item.list_satuan?.map((satuan) => (
+                          <option
+                            key={satuan.id_satuan || satuan.id}
+                            value={satuan.id_satuan || satuan.id}
+                            disabled={satuan.is_active_satuan == 0}
+                          >
+                            {satuan.nama_satuan} ({satuan.jumlah_konversi || satuan.rasio_ke_pcs || 1} PCS) - Rp {Number(satuan.harga_jual).toLocaleString('id-ID')}
+                            {satuan.is_active_satuan == 0 ? ' (Nonaktif)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   {/* BONUS FLEKSIBEL */}
-                  <div
-                    className={`${item?.ada_fitur_bonus == 1 ? 'block' : 'hidden'} mt-2 flex items-center gap-2 flex-wrap p-2.5 rounded-xl border transition-colors ${
-                      Number(item.qty_bonus) > 0
-                        ? 'bg-violet-50 border-violet-300'
-                        : 'bg-violet-50/40 border-violet-200/70'
-                    }`}
-                  >
-                    <label className="text-xs sm:text-sm font-bold text-violet-700 flex items-center gap-1.5">
-                      <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-                      </svg>
-                      Bonus:
-                    </label>
-
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      value={item.qty_bonus ?? ''}
-                      onChange={(e) => handleBonusChange(item, e.target.value)}
-                      className="w-16 h-9 px-2 text-sm font-bold text-center text-violet-800 bg-white border border-violet-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400/30"
-                    />
-
-                    <select
-                      value={item.id_satuan_bonus || item.id_satuan}
-                      onChange={(e) => handleSatuanBonusChange(e.target.value, item)}
-                      className="h-9 px-2 text-xs font-bold text-violet-800 bg-white border border-violet-300 rounded-lg focus:outline-none cursor-pointer"
+                  {item?.ada_fitur_bonus == 1 && (
+                    <div
+                      className={`flex items-center gap-2 flex-wrap p-3 rounded-xl border transition-colors ${Number(item.qty_bonus) > 0
+                        ? 'bg-amber-50 border-amber-300'
+                        : 'bg-slate-50 border-slate-200'
+                        }`}
                     >
-                      {item.list_satuan?.map((satuan) => (
-                        <option key={satuan.id_satuan || satuan.id} value={satuan.id_satuan || satuan.id}>
-                          {satuan.nama_satuan} ({satuan.rasio_ke_pcs || 1} PCS)
-                        </option>
-                      ))}
-                    </select>
+                      <label className="flex-1 text-xs sm:text-sm font-semibold text-amber-800 flex items-center gap-1.5">
+                        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                        </svg>
+                        Bonus
+                      </label>
 
-                    <span className="ml-auto text-xs font-bold px-2 py-1 rounded-full bg-violet-100 text-violet-700 border border-violet-200">
-                      Gratis · Rp 0
-                    </span>
-                  </div>
-                </div>
-
-                <div className={`${item.is_bonus_luar ? 'hidden':'block'} flex flex-col sm:flex-row items-stretch sm:items-center justify-between lg:justify-end gap-3 sm:gap-4 border-t lg:border-t-0 pt-3 lg:pt-0 border-slate-100 shrink-0`}>
-                  <div className="grid grid-cols-3 sm:flex items-center gap-2 sm:gap-3">
-                    <div className={`  flex flex-col items-start sm:items-center`}>
-                      <label className="text-xs font-bold text-slate-600 mb-1">Qty Beli</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={item.jumlah ?? item.qty ?? 0}
-                        onChange={(e) => edit_jumlah_pesanan(e, item)}
-                        className="w-full sm:w-20 h-10 px-2 text-sm sm:text-base font-bold text-center text-slate-900 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                      />
-                    </div>
-
-                    <div className={`${item.is_bonus_luar ? 'hidden':'block'} flex flex-col items-start sm:items-center`}>
-                      <label className="text-xs font-bold text-rose-600 mb-1">Disk (%)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        placeholder="0"
-                        value={item.diskon_persen ?? ''}
-                        onChange={(e) => handleDiskonPersenChange(item, e.target.value)}
-                        className="w-full sm:w-16 h-10 p-1 text-center text-xs sm:text-sm font-bold text-rose-700 bg-rose-50/50 border border-rose-300 rounded-lg focus:outline-none"
-                      />
-                    </div>
-
-                    <div className={`${item.is_bonus_luar ? 'hidden':'block'} flex flex-col items-start sm:items-center`}>
-                      <label className="text-xs font-bold text-rose-600 mb-1">Disk (Rp)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="0"
-                        value={item.diskon ?? ''}
-                        onChange={(e) => handleDiskonRupiahChange(item, e.target.value)}
-                        className="w-full sm:w-24 h-10 p-1 text-center text-xs sm:text-sm font-bold text-rose-700 bg-rose-50/50 border border-rose-300 rounded-lg focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                    <div className="text-left sm:text-right min-w-[100px]">
-                      <span className="text-[11px] text-slate-400 block uppercase font-semibold">Subtotal</span>
-                      <span className="text-base sm:text-lg font-extrabold text-slate-900 block truncate">
-                        Rp {Number(item.subtotal || 0).toLocaleString('id-ID')}
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white text-amber-800 border border-amber-200">
+                        Gratis · Rp 0
                       </span>
-                      {Number(item.qty_bonus) > 0 && (
-                        <span className="text-[11px] font-bold text-violet-600 block">
-                          + {Number(item.qty_bonus)} {item.nama_satuan_bonus || item.nama_satuan} bonus
-                        </span>
-                      )}
+
+                      <div className="w-full flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          inputMode="numeric"
+                          placeholder="0"
+                          value={item.qty_bonus ?? ''}
+                          onChange={(e) => handleBonusChange(item, e.target.value)}
+                          className="w-20 h-11 sm:h-10 px-2 text-base sm:text-sm font-semibold text-center text-slate-900 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                        />
+
+                        <select
+                          value={item.id_satuan_bonus || item.id_satuan}
+                          onChange={(e) => handleSatuanBonusChange(e.target.value, item)}
+                          className="flex-1 min-w-0 sm:flex-none sm:w-44 h-11 sm:h-10 px-2 text-base sm:text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 cursor-pointer"
+                        >
+                          {item.list_satuan?.map((satuan) => (
+                            <option
+                              key={satuan.id_satuan || satuan.id}
+                              value={satuan.id_satuan || satuan.id}
+                              disabled={satuan.is_active_satuan == 0}
+                            >
+                              {satuan.nama_satuan} ({satuan.rasio_ke_pcs || 1} PCS)
+                              {satuan.is_active_satuan == 0 ? ' (Nonaktif)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* ===== KANAN: QTY, DISKON, SUBTOTAL, HAPUS ===== */}
+                {!item.is_bonus_luar && (
+                  <div className="flex flex-col gap-4 border-t lg:border-t-0 lg:border-l border-slate-100 pt-4 lg:pt-0 lg:pl-8 lg:w-[22rem] shrink-0">
+                    <div className="grid grid-cols-[1fr_1fr_1.4fr] gap-2.5">
+                      <div className="flex flex-col">
+                        <label className="text-xs font-medium text-slate-600 mb-1">Qty Beli</label>
+                        <input
+                          type="number"
+                          min="0"
+                          inputMode="numeric"
+                          value={item.jumlah ?? item.qty ?? 0}
+                          onChange={(e) => edit_jumlah_pesanan(e, item)}
+                          className="w-full h-11 px-2 text-base font-semibold text-center text-slate-900 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                        />
+                      </div>
+
+                      <div className="flex flex-col">
+                        <label className="text-xs font-medium text-slate-600 mb-1">Disk (%)</label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            inputMode="decimal"
+                            placeholder="0"
+                            value={item.diskon_persen ?? ''}
+                            onChange={(e) => handleDiskonPersenChange(item, e.target.value)}
+                            className="w-full h-11 pl-2 pr-6 text-base font-semibold text-right text-slate-900 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                          />
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">%</span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col">
+                        <label className="text-xs font-medium text-slate-600 mb-1">Disk (Rp)</label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">Rp</span>
+                          <input
+                            type="number"
+                            min="0"
+                            inputMode="numeric"
+                            placeholder="0"
+                            value={item.diskon ?? ''}
+                            onChange={(e) => handleDiskonRupiahChange(item, e.target.value)}
+                            className="w-full h-11 pl-8 pr-2 text-base font-semibold text-right text-slate-900 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600"
+                          />
+                        </div>
+                      </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => hapus(item)}
-                      className="h-10 px-3.5 text-xs sm:text-sm font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg shrink-0 cursor-pointer flex items-center justify-center gap-1"
-                    >
-                      <span>Hapus</span>
-                    </button>
+                    <div className="flex items-end justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="text-xs text-slate-500 block">Subtotal</span>
+                        <span className="text-lg sm:text-xl font-bold text-slate-900 block truncate tabular-nums">
+                          Rp {Number(item.subtotal || 0).toLocaleString('id-ID')}
+                        </span>
+                        {Number(item.qty_bonus) > 0 && (
+                          <span className="text-xs font-medium text-amber-700 block">
+                            + {Number(item.qty_bonus)} {item.nama_satuan_bonus || item.nama_satuan} bonus
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => hapus(item)}
+                        className="h-11 px-4 text-sm font-semibold text-rose-600 bg-white hover:bg-rose-50 active:bg-rose-100 border border-rose-200 rounded-lg shrink-0 cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-1 12a2 2 0 01-2 2H8a2 2 0 01-2-2L5 7m5 4v6m4-6v6M9 7V4h6v3M4 7h16" />
+                        </svg>
+                        <span>Hapus</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             ))
           ) : (
             <div className="py-16 text-center space-y-2">
-              <p className="text-base font-bold text-slate-600">Belum ada pesanan</p>
+              <p className="text-base font-semibold text-slate-600">Belum ada pesanan</p>
             </div>
           )}
         </div>
 
         {/* FOOTER SUMMARY */}
         {dataInputBarang?.ListPesanan?.length > 0 && (
-          <div className="px-4 sm:px-6 py-4 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between gap-4">
-            <span className="text-sm sm:text-base font-bold text-slate-700">Total Pembayaran</span>
-            <span className="text-xl sm:text-2xl font-black text-emerald-600">
+          <div className="px-4 sm:px-6 py-4 border-t border-emerald-100 bg-emerald-50/60 flex items-center justify-between gap-4">
+            <span className="text-sm sm:text-base font-semibold text-slate-700">Total Pembayaran</span>
+            <span className="text-xl sm:text-2xl font-bold text-emerald-700 tabular-nums">
               Rp {totalSeluruhPesanan.toLocaleString('id-ID')}
             </span>
           </div>
@@ -519,16 +560,21 @@ export function ListPesanan() {
       </div>
 
       {/* ========================================== */}
-      {/* FIXED INSET-0 POPUP MODAL PENCARIAN BARANG */}
+      {/* POPUP MODAL PENCARIAN BARANG (bottom sheet di mobile) */}
       {/* ========================================== */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150">
-            
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center sm:p-4">
+          <div className="bg-white w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh] pb-[env(safe-area-inset-bottom)] animate-in fade-in zoom-in-95 duration-150">
+
+            {/* Handle (mobile) */}
+            <div className="sm:hidden flex justify-center pt-2 shrink-0">
+              <span className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
+
             {/* Modal Header */}
-            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between gap-3 shrink-0">
-              <div>
-                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+            <div className="px-5 py-4 border-b border-emerald-100 bg-emerald-50/60 flex items-center justify-between gap-3 shrink-0">
+              <div className="min-w-0">
+                <h3 className="text-base sm:text-lg font-semibold text-slate-900">
                   Cari & Tambah Barang Bonus
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -538,14 +584,17 @@ export function ListPesanan() {
 
               <button
                 type="button"
+                aria-label="Tutup"
                 onClick={() => {
                   setIsModalOpen(false);
                   setHasilCari([]);
                   setInputCari('');
                 }}
-                className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-200/60 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer font-bold"
+                className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full hover:bg-emerald-100 active:bg-emerald-100 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
               >
-                ✕
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
+                </svg>
               </button>
             </div>
 
@@ -564,13 +613,13 @@ export function ListPesanan() {
                       handleCariBarang();
                     }
                   }}
-                  className="flex-1 h-11 px-3.5 text-sm font-semibold border border-slate-300 rounded-xl bg-slate-50/80 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-600 transition-all"
+                  className="flex-1 min-w-0 h-11 px-3.5 text-base sm:text-sm font-medium border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 transition-all"
                 />
                 <button
                   type="button"
                   onClick={handleCariBarang}
                   disabled={isSearching}
-                  className="px-6 h-11 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white font-bold text-xs sm:text-sm rounded-xl transition-all cursor-pointer shadow-sm shrink-0 flex items-center justify-center"
+                  className="px-5 h-11 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-colors cursor-pointer shrink-0 flex items-center justify-center"
                 >
                   {isSearching ? 'Mencari...' : 'Cari'}
                 </button>
@@ -578,23 +627,23 @@ export function ListPesanan() {
             </div>
 
             {/* List Hasil Pencarian dalam Modal */}
-            <div className="p-4 overflow-y-auto flex-1 divide-y divide-slate-100">
+            <div className="p-3 sm:p-4 overflow-y-auto flex-1 divide-y divide-slate-100">
               {hasilCari.length > 0 ? (
                 hasilCari.map((barang, idx) => (
                   <div
                     key={barang.kode_barang || idx}
-                    className="py-3 flex items-center justify-between gap-3 hover:bg-violet-50/50 px-2 rounded-xl transition-colors"
+                    className="py-3 flex items-center justify-between gap-3 hover:bg-emerald-50/50 px-2 rounded-xl transition-colors"
                   >
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] font-mono font-semibold px-2 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200">
                           {barang.kode_barang}
                         </span>
-                        <span className="text-xs font-semibold text-emerald-700">
+                        <span className="text-xs font-medium text-emerald-700">
                           Stok: {barang.stok_pcs || 0} PCS
                         </span>
                       </div>
-                      <h4 className="font-bold text-slate-800 text-sm mt-1 truncate">
+                      <h4 className="font-semibold text-slate-800 text-sm mt-1 truncate">
                         {barang.nama_barang}
                       </h4>
                     </div>
@@ -602,7 +651,7 @@ export function ListPesanan() {
                     <button
                       type="button"
                       onClick={() => tambahBarangBonusManual(barang)}
-                      className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs rounded-xl transition-all shrink-0 active:scale-95 cursor-pointer shadow-xs"
+                      className="h-10 px-3.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs rounded-lg transition-colors shrink-0 cursor-pointer"
                     >
                       + Pilih Sebagai Bonus
                     </button>
@@ -610,7 +659,7 @@ export function ListPesanan() {
                 ))
               ) : (
                 <div className="py-12 text-center text-slate-400 space-y-1">
-                  <p className="text-sm font-semibold">
+                  <p className="text-sm font-medium">
                     {isSearching ? 'Sedang memuat data...' : 'Ketik nama barang dan klik Cari'}
                   </p>
                 </div>
@@ -626,7 +675,7 @@ export function ListPesanan() {
                   setHasilCari([]);
                   setInputCari('');
                 }}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 transition-colors"
+                className="h-11 sm:h-10 px-5 text-sm font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200/60 transition-colors"
               >
                 Batal
               </button>
@@ -637,5 +686,6 @@ export function ListPesanan() {
       )}
 
     </main>
+
   );
 }

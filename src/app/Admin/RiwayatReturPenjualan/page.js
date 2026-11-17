@@ -1,5 +1,7 @@
 'use client';
 
+import { CEK_HAK_AKSES } from '@/app/Hooks/Hooks';
+import { SubHeader } from '@/UI/Header/subHeader';
 /**
  * Riwayat Retur Penjualan: Next.js (App Router), satu file, tanpa dependensi tambahan.
  * Letakkan di mis. app/retur/riwayat/page.jsx
@@ -173,11 +175,33 @@ function DetailBody({ id }) {
   if (state.error) return <div className="rr-state"><strong>Detail gagal dimuat</strong>{state.error}</div>;
 
   const { header: h, items } = state.data;
+
+  const isSilang = !!h.no_faktur_asal && h.no_faktur_asal !== h.no_faktur;
+  const jenisLabel = isSilang ? 'Retur Silang' : 'Retur Biasa';
+
+  // PPN per faktur (hanya untuk retur silang)
+  const ppnPerFaktur = (() => {
+    if (!isSilang || !h.ppn_persen) return [];
+    const map = new Map();
+    for (const i of items) {
+      // barang dari faktur -> tarif faktur itu; barang manual -> tarif faktur tujuan
+      const faktur = i.no_faktur_item || h.no_faktur;
+      const persen = i.no_faktur_item ? i.ppn_persen_item : h.ppn_persen_tujuan;
+      const cur = map.get(faktur) || { dpp: 0, persen };
+      cur.dpp += i.subtotal_retur;
+      map.set(faktur, cur);
+    }
+    return [...map].map(([faktur, { dpp, persen }]) => ({
+      faktur, dpp, persen, ppn: Math.round((dpp * persen) / 100)
+    }));
+  })();
+
   return (
     <>
       <dl className="rr-dgrid">
         <div><dt>Tanggal</dt><dd>{tglLabel(h.tanggal_retur)}</dd></div>
         <div><dt>Metode</dt><dd>{h.metode_label}</dd></div>
+        <div><dt>Jenis retur</dt><dd>{jenisLabel}</dd></div>
         <div className="full"><dt>Pelanggan</dt><dd>{h.nama_pelanggan}</dd></div>
         <div><dt>Faktur tujuan</dt><dd>{h.no_faktur}</dd></div>
         <div><dt>Faktur asal</dt><dd>{h.no_faktur_asal || '-'}</dd></div>
@@ -203,7 +227,18 @@ function DetailBody({ id }) {
       </div>
       <div className="rr-totals num">
         <div><span>DPP</span><span>{rp.format(h.dpp_total)}</span></div>
-        <div><span>PPN{h.ppn_persen ? ` ${nf.format(h.ppn_persen)}%` : ''}</span><span>{rp.format(h.ppn_nominal)}</span></div>
+        {ppnPerFaktur.length > 1 ? (
+          ppnPerFaktur.map((p) => (
+            <div key={p.faktur}>
+              {/* <span>PPN ({p.faktur}) {nf.format(h.ppn_persen)}%</span> */}
+              <span>PPN ({p.faktur}) {nf.format(p.persen)}%</span>
+              <span>{rp.format(p.ppn)}</span>
+            </div>
+          ))
+        ) : (
+          <div><span>PPN{h.ppn_persen ? ` ${nf.format(h.ppn_persen)}%` : ''}</span><span>{rp.format(h.ppn_nominal)}</span></div>
+        )}
+        {/* <div><span>Total PPN:{h.ppn_persen ? ` ` : ''}</span><span>{rp.format(h.ppn_nominal)}</span></div> */}
         {h.jumlah_potong_piutang ? <div><span>Potong piutang</span><span>{rp.format(h.jumlah_potong_piutang)}</span></div> : null}
         {h.jumlah_refund_kas ? <div><span>Refund kas</span><span>{rp.format(h.jumlah_refund_kas)}</span></div> : null}
         <div className="grand"><span>Grand total</span><span>{rp.format(h.grand_total)}</span></div>
@@ -399,135 +434,152 @@ export default function RiwayatReturPage() {
   const sheetTitle = sheet?.type === 'date' ? 'Rentang tanggal' : sheet?.type === 'export' ? 'Unduh laporan' : 'Detail retur';
 
   return (
-    <div className="rr" ref={rootRef}>
-      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+    <CEK_HAK_AKSES>
+      <div className="rr" ref={rootRef}>
+        <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
-      <header className="rr-appbar" ref={barRef}>
-        <div className="rr-appbar-row">
-          <h1>Riwayat Retur</h1>
-          <button type="button" className="rr-icon-btn" onClick={() => setSheet({ type: 'date' })} aria-label="Atur rentang tanggal">
-            <IconCalendar />{preset === 'custom' ? <span className="rr-dot" /> : null}
-          </button>
-          <button type="button" className="rr-icon-btn" onClick={() => setSheet({ type: 'export' })} aria-label="Unduh laporan"><IconDownload /></button>
-        </div>
-        <div className={`rr-search${qInput ? ' has-text' : ''}`}>
-          <span className="s-ico"><IconSearch /></span>
-          <input type="search" inputMode="search" enterKeyHint="search" autoComplete="off" value={qInput}
-            onChange={(e) => setQInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-            placeholder="Cari no. retur, no. faktur, atau pelanggan" aria-label="Cari retur" />
-          <button type="button" className="clear" onClick={() => { setQInput(''); setQ(''); }} aria-label="Hapus pencarian"><IconClose size={20} /></button>
-        </div>
-      </header>
+        <header className="rr-appbar" ref={barRef}>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-10 w-10 text-white font-bold transition-transform group-hover:-translate-x-0.5"
+            onClick={() => window.navigation.back()}
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          <div className="rr-appbar-row">
+            <h1>Riwayat Retur</h1>
+            <button type="button" className="rr-icon-btn" onClick={() => setSheet({ type: 'date' })} aria-label="Atur rentang tanggal">
+              <IconCalendar />{preset === 'custom' ? <span className="rr-dot" /> : null}
+            </button>
+            <button type="button" className="rr-icon-btn" onClick={() => setSheet({ type: 'export' })} aria-label="Unduh laporan"><IconDownload /></button>
+          </div>
+          <div className={`rr-search${qInput ? ' has-text' : ''}`}>
+            <span className="s-ico"><IconSearch /></span>
+            <input type="search" inputMode="search" enterKeyHint="search" autoComplete="off" value={qInput}
+              onChange={(e) => setQInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+              placeholder="Cari no. retur, no. faktur, atau pelanggan" aria-label="Cari retur" />
+            <button type="button" className="clear" onClick={() => { setQInput(''); setQ(''); }} aria-label="Hapus pencarian"><IconClose size={20} /></button>
+          </div>
+        </header>
 
-      <div className="rr-rail" role="group" aria-label="Rentang tanggal cepat">
-        {PRESETS.map((p) => (
-          <button type="button" key={p.id} className="rr-chip" aria-pressed={preset === p.id} onClick={() => applyPreset(p.id)}>
-            {p.id === 'custom' ? customLabel : p.label}
-          </button>
-        ))}
-      </div>
-
-      {summary ? (
-        <div className="rr-rail" role="group" aria-label="Metode penyelesaian" style={{ paddingTop: 8 }}>
-          {[{ metode: '', label: 'Semua', jumlah: summary.semua_jumlah }, ...summary.per_metode].map((m) => (
-            <button type="button" key={m.metode || 'all'} className="rr-chip" aria-pressed={metode === m.metode}
-              onClick={() => setMetode(m.metode)}>
-              {m.label}<span className="n num">{nf.format(m.jumlah)}</span>
+        <div className="rr-rail" role="group" aria-label="Rentang tanggal cepat">
+          {PRESETS.map((p) => (
+            <button type="button" key={p.id} className="rr-chip" aria-pressed={preset === p.id} onClick={() => applyPreset(p.id)}>
+              {p.id === 'custom' ? customLabel : p.label}
             </button>
           ))}
         </div>
-      ) : null}
 
-      <div className="rr-wrap">
-        {ready ? <p className="rr-period">Periode: {rangeText(range.from, range.to)}</p> : <p className="rr-period">&nbsp;</p>}
-
-        <section className="rr-kpis" aria-live="polite">
-          <div className="rr-kpi"><div className="l">Jumlah retur</div><div className="v num">{summary ? nf.format(summary.total_retur) : '-'}</div></div>
-          <div className="rr-kpi primary"><div className="l">Total nilai retur</div><div className="v sm num">{summary ? rp.format(summary.total_nilai) : '-'}</div></div>
-          <div className="rr-kpi"><div className="l">Rata-rata per retur</div>
-            <div className="v sm num">{summary && summary.total_retur ? rp.format(Math.round(summary.total_nilai / summary.total_retur)) : '-'}</div></div>
-        </section>
-
-        <main>
-          {groups.map((g) => (
-            <section key={g.day}>
-              <div className="rr-day">{fmtLong.format(parseYmd(g.day))}</div>
-              <div className="rr-list">
-                {g.items.map((r) => {
-                  const alt = r.metode_penyelesaian !== 'POTONG_PIUTANG';
-                  const asal = r.no_faktur_asal && r.no_faktur_asal !== r.no_faktur ? ` · asal ${r.no_faktur_asal}` : '';
-                  return (
-                    <button type="button" key={r.id} className="rr-card" onClick={() => setSheet({ type: 'detail', id: r.id })}
-                      aria-label={`Detail retur ${r.no_retur}`}>
-                      <span className="rr-avatar"><IconReturn /></span>
-                      <span className="c-main">
-                        <span className="c-title">{r.no_retur}</span>
-                        <span className="c-sub">{r.nama_pelanggan}</span>
-                        <span className="c-meta">{jam(r.tanggal_retur)} · {r.no_faktur}{asal}</span>
-                      </span>
-                      <span className="c-side">
-                        <span className="c-amt num">{rp.format(r.grand_total)}</span>
-                        <span className={`rr-badge${alt ? ' alt' : ''}`}>{r.metode_label}</span>
-                        <span className="c-meta">{nf.format(r.jumlah_item)} item · {nf.format(r.total_pcs)} pcs</span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
-        </main>
-
-        {phase === 'first' ? (
-          <div className="rr-list" style={{ marginTop: 16 }}>{[0, 1, 2, 3, 4].map((i) => <div className="rr-skeleton" key={i} />)}</div>
+        {summary ? (
+          <div className="rr-rail" role="group" aria-label="Metode penyelesaian" style={{ paddingTop: 8 }}>
+            {[{ metode: '', label: 'Semua', jumlah: summary.semua_jumlah }, ...summary.per_metode].map((m) => (
+              <button type="button" key={m.metode || 'all'} className="rr-chip" aria-pressed={metode === m.metode}
+                onClick={() => setMetode(m.metode)}>
+                {m.label}<span className="n num">{nf.format(m.jumlah)}</span>
+              </button>
+            ))}
+          </div>
         ) : null}
-        {phase === 'more' ? <div className="rr-loadmore"><div className="rr-spinner" role="progressbar" aria-label="Memuat" /></div> : null}
-        {phase === 'error' ? (
-          <div className="rr-state"><strong>Data gagal dimuat</strong>{errMsg}
-            <div><button type="button" className="rr-btn primary" onClick={() => retryRef.current?.()}>Coba lagi</button></div></div>
-        ) : null}
-        {isEmpty ? (
-          <div className="rr-state"><IconBox />
-            <strong>Belum ada retur</strong>
-            {q ? 'Tidak ada hasil untuk pencarian ini. Coba kata kunci lain.' : 'Tidak ada retur pada rentang tanggal ini. Coba ubah tanggal.'}
-            <div><button type="button" className="rr-btn ghost" onClick={resetAll}>Atur ulang filter</button></div></div>
-        ) : null}
-        {phase === 'idle' && rows.length > 0 && !hasMore ? <p className="rr-end">Semua {nf.format(rows.length)} retur sudah ditampilkan</p> : null}
 
-        <div ref={sentinelRef} style={{ height: 1 }} />
+        <div className="rr-wrap">
+          {ready ? <p className="rr-period">Periode: {rangeText(range.from, range.to)}</p> : <p className="rr-period">&nbsp;</p>}
+
+          <section className="rr-kpis" aria-live="polite">
+            <div className="rr-kpi"><div className="l">Jumlah retur</div><div className="v num">{summary ? nf.format(summary.total_retur) : '-'}</div></div>
+            <div className="rr-kpi primary"><div className="l">Total nilai retur</div><div className="v sm num">{summary ? rp.format(summary.total_nilai) : '-'}</div></div>
+            <div className="rr-kpi"><div className="l">Rata-rata per retur</div>
+              <div className="v sm num">{summary && summary.total_retur ? rp.format(Math.round(summary.total_nilai / summary.total_retur)) : '-'}</div></div>
+          </section>
+
+          <main>
+            {groups.map((g) => (
+              <section key={g.day}>
+                <div className="rr-day">{fmtLong.format(parseYmd(g.day))}</div>
+                <div className="rr-list">
+                  {g.items.map((r) => {
+                    const alt = r.metode_penyelesaian !== 'POTONG_PIUTANG';
+                    const asal = r.no_faktur_asal && r.no_faktur_asal !== r.no_faktur ? ` · asal ${r.no_faktur_asal}` : '';
+                    const silang = !!r.no_faktur_asal && r.no_faktur_asal !== r.no_faktur;
+                    return (
+                      <button type="button" key={r.id} className="rr-card" onClick={() => setSheet({ type: 'detail', id: r.id })}
+                        aria-label={`Detail retur ${r.no_retur}`}>
+                        <span className="rr-avatar"><IconReturn /></span>
+                        <span className="c-main">
+                          <span className="c-title">{r.no_retur}</span>
+                          <span className="c-sub">{r.nama_pelanggan}</span>
+                          <span className="c-meta">{jam(r.tanggal_retur)} · {r.no_faktur}{asal}</span>
+                        </span>
+                        <span className="c-side">
+                          <span className="c-amt num">{rp.format(r.grand_total)}</span>
+                          <span className={`rr-badge${alt ? ' alt' : ''}`}>{r.metode_label}</span>
+                          <span className={`rr-badge${silang ? ' alt' : ''}`}>{silang ? 'Retur Silang' : 'Retur Biasa'}</span>
+                          <span className="c-meta">{nf.format(r.jumlah_item)} item · {nf.format(r.total_pcs)} pcs</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+          </main>
+
+          {phase === 'first' ? (
+            <div className="rr-list" style={{ marginTop: 16 }}>{[0, 1, 2, 3, 4].map((i) => <div className="rr-skeleton" key={i} />)}</div>
+          ) : null}
+          {phase === 'more' ? <div className="rr-loadmore"><div className="rr-spinner" role="progressbar" aria-label="Memuat" /></div> : null}
+          {phase === 'error' ? (
+            <div className="rr-state"><strong>Data gagal dimuat</strong>{errMsg}
+              <div><button type="button" className="rr-btn primary" onClick={() => retryRef.current?.()}>Coba lagi</button></div></div>
+          ) : null}
+          {isEmpty ? (
+            <div className="rr-state"><IconBox />
+              <strong>Belum ada retur</strong>
+              {q ? 'Tidak ada hasil untuk pencarian ini. Coba kata kunci lain.' : 'Tidak ada retur pada rentang tanggal ini. Coba ubah tanggal.'}
+              <div><button type="button" className="rr-btn ghost" onClick={resetAll}>Atur ulang filter</button></div></div>
+          ) : null}
+          {phase === 'idle' && rows.length > 0 && !hasMore ? <p className="rr-end">Semua {nf.format(rows.length)} retur sudah ditampilkan</p> : null}
+
+          <div ref={sentinelRef} style={{ height: 1 }} />
+        </div>
+
+        <Sheet open={!!sheet} title={sheetTitle} onClose={closeSheet}>
+          {sheet?.type === 'date' ? (
+            <DateForm
+              initial={range}
+              onApply={(from, to) => { setPreset('custom'); setRange({ from, to }); closeSheet(); }}
+              onReset={() => { applyPreset('month'); closeSheet(); }}
+            />
+          ) : null}
+
+          {sheet?.type === 'export' ? (
+            <>
+              <p className="rr-hint">
+                Sesuai filter saat ini: {rangeText(range.from, range.to)}
+                {metode ? ` · ${metode.toLowerCase().replace(/_/g, ' ')}` : ''}{q ? ` · “${q}”` : ''}.
+              </p>
+              <button type="button" className="rr-opt" disabled={!!exporting} onClick={() => doExport('excel')}>
+                <span className="rr-avatar"><IconSheet /></span>
+                <span><b>{exporting === 'excel' ? 'Menyiapkan file…' : 'Excel (.xlsx)'}</b><span>Satu tabel lengkap: tanggal, pelanggan, barang, pcs, total retur, kondisi (bagus/rusak), keterangan. Bisa difilter</span></span>
+              </button>
+              <button type="button" className="rr-opt" disabled={!!exporting} onClick={() => doExport('pdf')}>
+                <span className="rr-avatar"><IconPdf /></span>
+                <span><b>{exporting === 'pdf' ? 'Menyiapkan file…' : 'PDF'}</b><span>Satu tabel yang sama, siap cetak (lanskap)</span></span>
+              </button>
+            </>
+          ) : null}
+
+          {sheet?.type === 'detail' ? <DetailBody key={sheet.id} id={sheet.id} /> : null}
+        </Sheet>
+
+        <div className={`rr-toast${toast.show ? ' show' : ''}${toast.bad ? ' bad' : ''}`} role="status">{toast.msg}</div>
       </div>
-
-      <Sheet open={!!sheet} title={sheetTitle} onClose={closeSheet}>
-        {sheet?.type === 'date' ? (
-          <DateForm
-            initial={range}
-            onApply={(from, to) => { setPreset('custom'); setRange({ from, to }); closeSheet(); }}
-            onReset={() => { applyPreset('month'); closeSheet(); }}
-          />
-        ) : null}
-
-        {sheet?.type === 'export' ? (
-          <>
-            <p className="rr-hint">
-              Sesuai filter saat ini: {rangeText(range.from, range.to)}
-              {metode ? ` · ${metode.toLowerCase().replace(/_/g, ' ')}` : ''}{q ? ` · “${q}”` : ''}.
-            </p>
-            <button type="button" className="rr-opt" disabled={!!exporting} onClick={() => doExport('excel')}>
-              <span className="rr-avatar"><IconSheet /></span>
-              <span><b>{exporting === 'excel' ? 'Menyiapkan file…' : 'Excel (.xlsx)'}</b><span>Satu tabel lengkap: tanggal, pelanggan, barang, pcs, total retur, kondisi (bagus/rusak), keterangan. Bisa difilter</span></span>
-            </button>
-            <button type="button" className="rr-opt" disabled={!!exporting} onClick={() => doExport('pdf')}>
-              <span className="rr-avatar"><IconPdf /></span>
-              <span><b>{exporting === 'pdf' ? 'Menyiapkan file…' : 'PDF'}</b><span>Satu tabel yang sama, siap cetak (lanskap)</span></span>
-            </button>
-          </>
-        ) : null}
-
-        {sheet?.type === 'detail' ? <DetailBody key={sheet.id} id={sheet.id} /> : null}
-      </Sheet>
-
-      <div className={`rr-toast${toast.show ? ' show' : ''}${toast.bad ? ' bad' : ''}`} role="status">{toast.msg}</div>
-    </div>
+    </CEK_HAK_AKSES>
   );
 }
 

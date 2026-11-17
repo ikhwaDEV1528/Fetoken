@@ -1,4 +1,5 @@
 'use client'
+import { CEK_HAK_AKSES } from '@/app/Hooks/Hooks';
 import React, { useState, useEffect } from 'react';
 
 const formatRupiah = (val) => {
@@ -55,6 +56,7 @@ export default function LaporanPpnPage() {
     }, [startDate, endDate]);
 
     return (
+        <CEK_HAK_AKSES>
         <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8 font-sans">
             <div className="max-w-4xl mx-auto space-y-6">
 
@@ -233,5 +235,6 @@ export default function LaporanPpnPage() {
 
             </div>
         </div>
+        </CEK_HAK_AKSES>
     );
 }

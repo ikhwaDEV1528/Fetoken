@@ -6,6 +6,17 @@ import { TimeoutNotif } from "@/UI/timeoutNotif/timeoutNotif";
 import axios from "axios";
 import { useContext, useState, useRef } from "react";
 
+
+// ===== TAMBAHAN: helper format ribuan Indonesia =====
+const formatRibuan = (val) => {
+  if (val === '' || val === null || val === undefined) return '';
+  const angka = String(val).replace(/\D/g, '');
+  return angka ? Number(angka).toLocaleString('id-ID') : '';
+};
+const bersihkanAngka = (val) => String(val).replace(/\D/g, '');
+// ====================================================
+
+
 export function DetailPesananBarang() {
   const { dataInputBarang, setDataInputBarang, setLoading, loading } = useContext(Konteks);
 
@@ -424,13 +435,21 @@ export function DetailPesananBarang() {
                 </label>
                 <div className="relative flex items-center">
                   <span className="absolute left-3.5 text-base font-bold text-rose-500">Rp</span>
-                  <input
+                  {/* <input
                     value={inputDiskonGlobal}
                     onChange={(e) => setInputDiskonGlobal(e.target.value)}
                     type="number"
                     min="0"
                     placeholder="0"
                     className="w-full pl-11 pr-3 h-12 text-lg sm:text-xl font-black text-rose-700 bg-white border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                  /> */}
+                  <input
+                    value={formatRibuan(inputDiskonGlobal)}
+                    onChange={(e) => setInputDiskonGlobal(bersihkanAngka(e.target.value))}
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="0"
+                    className="w-full pl-11 pr-3 h-12 text-lg sm:text-xl font-black text-rose-700 ..."
                   />
                 </div>
               </div>
@@ -460,12 +479,20 @@ export function DetailPesananBarang() {
                 </label>
                 <div className="relative flex items-center">
                   <span className="absolute left-3.5 text-base font-bold text-slate-500">Rp</span>
-                  <input
+                  {/* <input
                     value={inputNominalPelanggan}
                     onChange={(e) => setInputNominalPelanggan(e.target.value)}
                     type="number"
                     placeholder="0"
                     className="w-full pl-11 pr-3 h-12 text-lg sm:text-xl font-black text-slate-900 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all"
+                  /> */}
+                  <input
+                    value={formatRibuan(inputNominalPelanggan)}
+                    onChange={(e) => setInputNominalPelanggan(bersihkanAngka(e.target.value))}
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="0"
+                    className="w-full pl-11 pr-3 h-12 text-lg sm:text-xl font-black text-slate-900 ..."
                   />
                 </div>
               </div>
@@ -488,8 +515,8 @@ export function DetailPesananBarang() {
             <div className="flex items-center gap-2.5">
               <span className="text-xs sm:text-sm font-semibold text-slate-500">Status:</span>
               <span className={`px-4 py-1.5 text-xs sm:text-sm font-extrabold rounded-full border ${sisaPiutang === 0
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300/80'
-                  : 'bg-amber-50 text-amber-800 border-amber-300/80'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-300/80'
+                : 'bg-amber-50 text-amber-800 border-amber-300/80'
                 }`}>
                 {sisaPiutang === 0 ? 'LUNAS' : 'BELUM LUNAS (PIUTANG)'}
               </span>
@@ -502,8 +529,8 @@ export function DetailPesananBarang() {
       {/* Fixed Bottom Action Sheet */}
       <div
         className={`fixed inset-x-0 bottom-0 z-40 p-0 sm:p-4 transition-all duration-300 ease-out transform ${(dataInputBarang?.ListPesanan || []).length === 0
-            ? 'translate-y-full opacity-0 pointer-events-none'
-            : 'translate-y-0 opacity-100 pointer-events-auto'
+          ? 'translate-y-full opacity-0 pointer-events-none'
+          : 'translate-y-0 opacity-100 pointer-events-auto'
           }`}
       >
         <div className="mx-auto w-full max-w-lg pointer-events-auto">

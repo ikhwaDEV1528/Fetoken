@@ -1,5 +1,6 @@
 'use client';
 
+import { CEK_HAK_AKSES } from '@/app/Hooks/Hooks';
 /**
  * Riwayat Retur Pembelian (retur ke supplier): Next.js (App Router), satu file, tanpa dependensi tambahan.
  * Letakkan di mis. app/retur-pembelian/riwayat/page.jsx
@@ -395,10 +396,24 @@ export default function RiwayatReturPembelianPage() {
   const sheetTitle = sheet?.type === 'date' ? 'Rentang tanggal' : sheet?.type === 'export' ? 'Unduh laporan' : 'Detail retur';
 
   return (
+    <CEK_HAK_AKSES>
     <div className="rr" ref={rootRef}>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
       <header className="rr-appbar" ref={barRef}>
+         <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-10 w-10 text-white font-bold transition-transform group-hover:-translate-x-0.5"
+            onClick={()=> window.navigation.back()}
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
         <div className="rr-appbar-row">
           <h1>Riwayat Retur Pembelian</h1>
           <button type="button" className="rr-icon-btn" onClick={() => setSheet({ type: 'date' })} aria-label="Atur rentang tanggal">
@@ -523,6 +538,7 @@ export default function RiwayatReturPembelianPage() {
 
       <div className={`rr-toast${toast.show ? ' show' : ''}${toast.bad ? ' bad' : ''}`} role="status">{toast.msg}</div>
     </div>
+    </CEK_HAK_AKSES>
   );
 }
 

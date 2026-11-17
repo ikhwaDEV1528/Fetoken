@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-export function EditFaktur({ faktur, open, setOpen, no_faktur }) {
+export function EditFaktur({ faktur, open, setOpen, no_faktur, onSaved, onDeleted }) {
     // State Pencarian
     const [inputCariBarang, setInputCariBarang] = useState('');
     const [listHasilCari, setListHasilCari] = useState([]);
@@ -17,39 +17,92 @@ export function EditFaktur({ faktur, open, setOpen, no_faktur }) {
     const [diskonRp, setDiskonRp] = useState(0);
 
     // Set Data Awal pas Modal Dibuka
+    // useEffect(() => {
+    //     if (faktur && open) {
+    //         const barangAwal = {
+    //             kode_barang: faktur.kode_barang,
+    //             nama_barang: faktur.nama_barang,
+    //             stok_pcs: Number(faktur.stok_pcs) || 0,
+    //             list_satuan: faktur.list_satuan || [
+    //                 {
+    //                     nama_satuan: faktur.satuan || 'PCS',
+    //                     harga_jual: Number(faktur.harga_jual) || 0,
+    //                     rasio_ke_pcs: 1
+    //                 }
+    //             ]
+    //         };
+
+    //         setSelectedBarang(barangAwal);
+    //         setInputCariBarang(faktur.nama_barang || '');
+
+    //         const satuanAktif = barangAwal.list_satuan.find(s => s.nama_satuan === faktur.satuan) || barangAwal.list_satuan[0];
+    //         setSelectedSatuanObj(satuanAktif);
+
+    //         setInputJumlah(Math.max(1, Number(faktur.jumlah_keluar) || 1));
+    //         setInputHargaJual(Math.max(0, Number(faktur.harga_jual) || Number(satuanAktif?.harga_jual) || 0));
+    //         setDiskonRp(Math.max(0, Number(faktur.diskon) || 0));
+    //         setDiskonPersen('');
+    //         setListHasilCari([]);
+    //     }
+    // }, [faktur, open]);
+
+
+    // Set Data Awal pas Modal Dibuka
     useEffect(() => {
-        if (faktur && open) {
-            const barangAwal = {
-                kode_barang: faktur.kode_barang,
-                nama_barang: faktur.nama_barang,
-                stok_pcs: Number(faktur.stok_pcs) || 0,
-                list_satuan: faktur.list_satuan || [
-                    {
-                        nama_satuan: faktur.satuan || 'PCS',
-                        harga_jual: Number(faktur.harga_jual) || 0,
-                        rasio_ke_pcs: 1
-                    }
-                ]
-            };
+        if (!faktur || !open) return;
 
-            setSelectedBarang(barangAwal);
-            setInputCariBarang(faktur.nama_barang || '');
+        const barangAwal = {
+            kode_barang: faktur.kode_barang,
+            nama_barang: faktur.nama_barang,
+            stok_pcs: Number(faktur.stok_pcs) || 0,
+            list_satuan: faktur.list_satuan || [
+                { nama_satuan: faktur.satuan || 'PCS', harga_jual: Number(faktur.harga_jual) || 0, rasio_ke_pcs: 1 }
+            ]
+        };
+         
 
-            const satuanAktif = barangAwal.list_satuan.find(s => s.nama_satuan === faktur.satuan) || barangAwal.list_satuan[0];
-            setSelectedSatuanObj(satuanAktif);
+        setSelectedBarang(barangAwal);
+        setInputCariBarang(faktur.nama_barang || '');
 
-            setInputJumlah(Math.max(1, Number(faktur.jumlah_keluar) || 1));
-            setInputHargaJual(Math.max(0, Number(faktur.harga_jual) || Number(satuanAktif?.harga_jual) || 0));
-            setDiskonRp(Math.max(0, Number(faktur.diskon) || 0));
-            setDiskonPersen('');
-            setListHasilCari([]);
-        }
+        const satuanAktif = barangAwal.list_satuan.find(s => s.nama_satuan === faktur.satuan) || barangAwal.list_satuan[0];
+        setSelectedSatuanObj(satuanAktif);
+
+        setInputJumlah(Math.max(1, Number(faktur.jumlah_keluar) || 1));
+        setInputHargaJual(Math.max(0, Number(faktur.harga_jual) || Number(satuanAktif?.harga_jual) || 0));
+        setDiskonRp(Math.max(0, Number(faktur.diskon) || 0));
+        setDiskonPersen('');
+        setListHasilCari([]);
+
+        // Ambil satuan & stok asli dari master (menggantikan fallback rasio 1)
+        let batal = false;
+        (async () => {
+            try {
+                const res = await axios.get('/api-be/SERVER_JUAL_BARANG/JUAL_BARANG', {
+                    params: { input: faktur.nama_barang }
+                });
+                const hasil = Array.isArray(res.data?.Search) ? res.data.Search : [];
+                const cocok = hasil.find(b => b.kode_barang === faktur.kode_barang);
+                if (batal || !cocok || !cocok.list_satuan?.length) return;
+
+                setSelectedBarang(prev => ({
+                    ...prev,
+                    stok_pcs: Number(cocok.stok_pcs) || 0,
+                    list_satuan: cocok.list_satuan
+                }));
+                const aktif = cocok.list_satuan.find(s => s.nama_satuan === faktur.satuan) || cocok.list_satuan[0];
+                setSelectedSatuanObj(aktif);
+            } catch (err) {
+                console.error('Gagal memuat satuan barang:', err);
+            }
+        })();
+
+        return () => { batal = true; };
     }, [faktur, open]);
 
     // Helper untuk hitung total stok nyata (Jika stok_pcs dari BE sudah merupakan sisa riil di gudang tanpa alokasi lama, langsung gunakan stok_pcs)
     const getStokEfektif = (barang, satuanObj) => {
         const stokSisa = Number(barang?.stok_pcs) || 0;
-        
+
         // Jika dari backend nilai stok_pcs sudah mencerminkan sisa riil gudang saat ini, 
         // kita langsung kembalikan stokSisa tanpa menambahkannya dengan pcsLama
         return stokSisa;
@@ -109,7 +162,7 @@ export function EditFaktur({ faktur, open, setOpen, no_faktur }) {
         setListHasilCari([]);
 
         const listSatuan = barangBaru.list_satuan || [];
-        
+
         // Cari satuan terbesar yang stok tersedianya mencukupi (stokTersedia >= rasio_ke_pcs)
         // Jika tidak ada yang cocok, gunakan satuan paling kecil (biasanya index terakhir/PCS)
         const satuanValiddanCukup = listSatuan.find(s => stokTersedia >= (Number(s.rasio_ke_pcs) || 1));
@@ -321,8 +374,9 @@ export function EditFaktur({ faktur, open, setOpen, no_faktur }) {
             });
 
             alert(ress.data.message || 'Berhasil menghapus item');
+            onDeleted?.(faktur);  
             setOpen(false);
-            window.location.reload();
+            // window.location.reload();
         } catch (err) {
             alert(err?.response?.data?.message || 'Gagal menghapus item');
         }
@@ -382,8 +436,9 @@ export function EditFaktur({ faktur, open, setOpen, no_faktur }) {
             });
 
             alert(response.data.message || 'Berhasil mengedit item');
+            onSaved?.(); 
             setOpen(false);
-            window.location.reload();
+            // window.location.reload();
         } catch (err) {
             alert(err?.response?.data?.message || 'Gagal menyimpan perubahan');
         }
@@ -564,7 +619,7 @@ export function EditFaktur({ faktur, open, setOpen, no_faktur }) {
                     </button>
 
                     <div className="flex gap-2">
-                       
+
                         <button
                             type="button"
                             onClick={simpanEditItem}

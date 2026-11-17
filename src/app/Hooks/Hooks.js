@@ -9,7 +9,7 @@ import { TimeoutNotif } from "@/UI/timeoutNotif/timeoutNotif";
 export function CEK_HAK_AKSES({ children }) {
   const [isRender, setIsRender] = useState(false);
   const [isAuthtorize , setAuthhtorize] = useState(false)
-  const { setLoading } = useContext(Konteks);
+  const { setLoading , setAuth} = useContext(Konteks);
   const pathname = usePathname();
 
   async function HAK_AKSES() {
@@ -29,6 +29,11 @@ export function CEK_HAK_AKSES({ children }) {
 
       // 2. Baru izinkan komponen anak di-render
       setIsRender(true);
+
+      setAuth(prev => ({
+        ...prev,
+        username:ress?.data.username
+      }))
 
     } catch (err) {
       if (err?.response?.status == 401 || 403) {

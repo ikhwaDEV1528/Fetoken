@@ -82,7 +82,7 @@ export function ListBarang() {
 
   // 4. EKO-SYSTEM EDIT BARANG
   function Edit(itemBarang) {
-    
+
     setFormEditBarang({
       kode_barang: itemBarang.kode_barang,
       harga_dasar: itemBarang.harga_dasar,
@@ -99,6 +99,69 @@ export function ListBarang() {
     }));
   }
 
+
+  async function NonAktif(item) {
+    const kode_barang = item?.kode_barang
+    const nama_barang = item?.nama_barang
+
+    if (!kode_barang || !nama_barang) {
+      return alert('Kesalahan, Kode barang atau Nama barang tidak ada!')
+    }
+
+    try {
+      const API = '/api-be/SERVER_BARANG/NONAKTIF_BARANG';
+      const ress = await axios.put(API, {
+        kode_barang: kode_barang,
+        nama_barang: nama_barang
+      })
+      setBarang(prev => {
+        return prev.map((i, index) => {
+          if (i.kode_barang == item.kode_barang) {
+            return { ...i, is_active: 0 }
+          }
+          return i
+        })
+      })
+
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Gagal Nonaktifkan barang!')
+    }
+
+
+  }
+
+
+
+  async function Aktif(item) {
+    const kode_barang = item?.kode_barang
+    const nama_barang = item?.nama_barang
+
+    if (!kode_barang || !nama_barang) {
+      return alert('Kesalahan, Kode barang atau Nama barang tidak ada!')
+    }
+
+    try {
+      const API = '/api-be/SERVER_BARANG/AKTIF_BARANG';
+      const ress = await axios.put(API, {
+        kode_barang: kode_barang,
+        nama_barang: nama_barang
+      })
+      setBarang(prev => {
+        return prev.map((i, index) => {
+          if (i.kode_barang == item.kode_barang) {
+            return { ...i, is_active: 1 }
+          }
+          return i
+        })
+      })
+
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Gagal Nonaktifkan barang!')
+    }
+
+
+  }
+
   return (
     <main className="min-h-screen mt-15 bg-slate-50 py-6 px-4 md:px-8">
       <div className="max-w-md md:max-w-7xl mx-auto space-y-4 md:space-y-0">
@@ -113,7 +176,7 @@ export function ListBarang() {
             Barang.map((item, index) => (
               <div
                 key={`${item.kode_barang}-${index}`}
-                className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col justify-between"
+                className={`rounded-2xl p-4 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col justify-between`}
               >
                 <div>
                   {/* Header Card: Nama & Kode */}
@@ -139,7 +202,8 @@ export function ListBarang() {
                         </span>
                         {/* Modal Bersih cukup ditampilkan tipis/subtile saja */}
                         <span className="text-[10px] text-slate-400 block font-medium mt-0.5">
-                          Modal Bersih: Rp {Math.floor(item.harga_dasar - (item.harga_dasar * ((item.persentase_diskon_distributor || 0) / 100))).toLocaleString('id-ID')}
+                          {/* Modal Bersih: Rp {Math.floor(item.harga_dasar - (item.harga_dasar * ((item.persentase_diskon_distributor || 0) / 100))).toLocaleString('id-ID')} */}
+                          Modal Bersih: Rp {Math.round(item.harga_dasar - (item.harga_dasar * ((item.persentase_diskon_distributor || 0) / 100))).toLocaleString('id-ID')}
                         </span>
                       </div>
 
@@ -178,6 +242,7 @@ export function ListBarang() {
                       ))}
                     </div>
                   </div>
+                  
 
                   {/* Footer Card: Stok & Diskon */}
                   <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
@@ -187,7 +252,7 @@ export function ListBarang() {
                     </div>
                     <div className="flex gap-1.5 text-[10px]">
                       <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-medium">
-                        Disc dist: {item.persentase_diskon_distributor}%
+                        Disc dist: {Number(item.persentase_diskon_distributor).toFixed(2)}%
                       </span>
                       <span className="bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-medium">
                         Profit target: {Number(item.persentase_fee_harga_jual).toFixed(2)}%
@@ -197,7 +262,21 @@ export function ListBarang() {
                 </div>
 
                 {/* Tombol Edit */}
-                <div className="bt-edit-barang mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                <div className="bt-edit-barang mt-4 pt-4 border-t border-slate-100 flex gap-4 justify-end">
+                  <button
+                    onClick={() => NonAktif(item)}
+                    className={` ${item.is_active == 1 ? 'block' : 'hidden'} bt-edit-barang  w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 active:scale-95 active:bg-emerald-800 text-white text-sm font-semibold rounded-full transition-all duration-150 ease-out`}
+                  >
+                    Non Aktifkan
+                  </button>
+
+                  <button
+                    onClick={() => Aktif(item)}
+                    className={` ${item.is_active == 0 ? 'block' : 'hidden'} bt-edit-barang  w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 active:bg-emerald-800 text-white text-sm font-semibold rounded-full transition-all duration-150 ease-out`}
+                  >
+                    Aktifkan
+                  </button>
+
                   <button
                     onClick={() => Edit(item)}
                     className="bt-edit-barang  w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 active:bg-emerald-800 text-white text-sm font-semibold rounded-full transition-all duration-150 ease-out"
@@ -205,6 +284,8 @@ export function ListBarang() {
                     Edit Barang
                   </button>
                 </div>
+
+
               </div>
             ))
           )}

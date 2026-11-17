@@ -2,9 +2,10 @@
 
 import axios from "axios";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { HeaderHutangSupplier } from "./Components/Header";
+import { HeaderHutang} from "./Components/Header";
 import { Konteks } from "@/GlobalNilai/Global";
 import { LoadingRequest } from "@/UI/Loading/LoadingRequest";
+import { CEK_HAK_AKSES } from "@/app/Hooks/Hooks";
 
 // ============================================================================
 // HALAMAN HUTANG SUPPLIER (hutang toko ke supplier)
@@ -96,6 +97,116 @@ function BadgeMetode({ tipe, metode }) {
     return <span className="inline-block px-2 py-0.5 text-[10px] font-extrabold rounded-md bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase">Tunai</span>;
 }
 
+function FilterFakturDropdown({ fakturs, nilai, onPilih }) {
+    const [buka, setBuka] = useState(false);
+    const ref = useRef(null);
+
+    useEffect(() => {
+        if (!buka) return;
+        const tutupLuar = (e) => {
+            if (ref.current && !ref.current.contains(e.target)) setBuka(false);
+        };
+        const tutupEsc = (e) => { if (e.key === 'Escape') setBuka(false); };
+        document.addEventListener('mousedown', tutupLuar);
+        document.addEventListener('touchstart', tutupLuar);
+        document.addEventListener('keydown', tutupEsc);
+        return () => {
+            document.removeEventListener('mousedown', tutupLuar);
+            document.removeEventListener('touchstart', tutupLuar);
+            document.removeEventListener('keydown', tutupEsc);
+        };
+    }, [buka]);
+
+    const opsi = [
+        { id: '', judul: 'Semua faktur', sub: `${fakturs.length} faktur belum lunas` },
+        ...fakturs.map((f) => ({
+            id: String(f.id_pembelian),
+            judul: f.no_faktur,
+            sub: `Sisa hutang Rp ${rp(f.sisa_hutang)}${f.jatuh_tempo ? ` • Tempo ${f.jatuh_tempo}` : ''}`
+        }))
+    ];
+    const aktif = opsi.find((o) => o.id === nilai) || opsi[0];
+
+    function pilih(id) {
+        setBuka(false);
+        if (id !== nilai) onPilih(id);
+    }
+
+    return (
+        <div ref={ref} className="relative">
+            <label className="mb-1.5 block text-xs font-extrabold uppercase tracking-wider text-slate-600">Filter faktur</label>
+
+            <button
+                type="button"
+                onClick={() => setBuka((b) => !b)}
+                aria-haspopup="listbox"
+                aria-expanded={buka}
+                className={`flex min-h-[60px] w-full items-center gap-3 rounded-2xl border-2 bg-white px-4 py-3 text-left shadow-sm transition active:scale-[0.99] cursor-pointer ${buka ? 'border-emerald-500 ring-4 ring-emerald-100' : 'border-slate-300 hover:border-emerald-400'
+                    }`}
+            >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-lg">🧾</span>
+                <span className="min-w-0 flex-1">
+                    <span className={`block truncate text-base font-extrabold text-slate-900 ${aktif.id ? 'font-mono' : ''}`}>{aktif.judul}</span>
+                    <span className="block truncate text-xs font-medium text-slate-500">{aktif.sub}</span>
+                </span>
+                <svg className={`h-6 w-6 shrink-0 text-slate-500 transition-transform ${buka ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                </svg>
+            </button>
+
+            {buka && (
+                <>
+                    <div className="fixed inset-0 z-[60] bg-black/40 sm:hidden" onClick={() => setBuka(false)} />
+                    <div
+                        role="listbox"
+                        className="fixed inset-x-0 bottom-0 z-[70] max-h-[75vh] overflow-hidden rounded-t-3xl bg-white shadow-2xl
+                                   sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:top-full sm:z-30 sm:mt-2 sm:w-full sm:max-h-80 sm:rounded-2xl sm:border sm:border-slate-200"
+                    >
+                        <div className="sm:hidden">
+                            <div className="mx-auto mt-2.5 h-1.5 w-12 rounded-full bg-slate-300" />
+                            <div className="flex items-center justify-between px-5 pb-2 pt-3">
+                                <p className="text-base font-extrabold text-slate-900">Pilih faktur</p>
+                                <button
+                                    type="button"
+                                    onClick={() => setBuka(false)}
+                                    className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-600 active:scale-95"
+                                    aria-label="Tutup"
+                                >×</button>
+                            </div>
+                        </div>
+
+                        <ul className="max-h-[calc(75vh-72px)] space-y-1.5 overflow-y-auto p-3 pb-6 sm:max-h-80 sm:pb-3">
+                            {opsi.map((o) => {
+                                const dipilih = o.id === nilai;
+                                return (
+                                    <li key={o.id || 'semua'}>
+                                        <button
+                                            type="button"
+                                            role="option"
+                                            aria-selected={dipilih}
+                                            onClick={() => pilih(o.id)}
+                                            className={`flex min-h-[60px] w-full items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left transition active:scale-[0.99] cursor-pointer ${dipilih
+                                                ? 'border-emerald-500 bg-emerald-50'
+                                                : 'border-transparent bg-slate-50 hover:border-emerald-200 hover:bg-emerald-50/60'
+                                                }`}
+                                        >
+                                            <span className="min-w-0 flex-1">
+                                                <span className={`block break-all text-base font-bold ${o.id ? 'font-mono' : ''} ${dipilih ? 'text-emerald-800' : 'text-slate-900'}`}>{o.judul}</span>
+                                                <span className="block text-xs font-medium text-slate-500">{o.sub}</span>
+                                            </span>
+                                            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold ${dipilih ? 'bg-emerald-600 text-white' : 'border-2 border-slate-300 text-transparent'}`}>✓</span>
+                                        </button>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
+
 export default function HutangSupplier() {
     // ---------------- daftar ----------------
     const [q, setQ] = useState('');
@@ -106,7 +217,7 @@ export default function HutangSupplier() {
     const [loadingDaftar, setLoadingDaftar] = useState(false);
     const [errDaftar, setErrDaftar] = useState('');
     const reqDaftar = useRef(0);
-    const {setLoading} = useContext(Konteks)
+    const { setLoading } = useContext(Konteks)
 
     useEffect(() => {
         const t = setTimeout(() => {
@@ -122,7 +233,7 @@ export default function HutangSupplier() {
         setErrDaftar('');
         setLoading(prev => ({
             ...prev,
-            loadingRequest:true
+            loadingRequest: true
         }))
         try {
             const ress = await axios.get(`${API}/DAFTAR_HUTANG_SUPPLIER`, {
@@ -137,9 +248,9 @@ export default function HutangSupplier() {
         } finally {
             if (id === reqDaftar.current) setLoadingDaftar(false);
             setLoading(prev => ({
-            ...prev,
-            loadingRequest:false
-        }))
+                ...prev,
+                loadingRequest: false
+            }))
         }
     }, [qAktif, sort, page]);
 
@@ -166,6 +277,7 @@ export default function HutangSupplier() {
     const [hasil, setHasil] = useState(null);
     const [errBayar, setErrBayar] = useState('');
     const [riwayat, setRiwayat] = useState(null);      // { items, page, totalPage, loading, error }
+    const [filterFaktur, setFilterFaktur] = useState(''); // '' = semua faktur, selain itu = id_pembelian
     const reqDetail = useRef(0);
     const reqRiwayat = useRef(0);
     const savingRef = useRef(false);
@@ -193,7 +305,8 @@ export default function HutangSupplier() {
         }
     }, []);
 
-    const muatRiwayat = useCallback(async (supplierId, halaman = 1) => {
+
+    const muatRiwayat = useCallback(async (supplierId, halaman = 1, idPembelian = '') => {
         const id = ++reqRiwayat.current;
         setRiwayat((prev) => ({
             items: halaman > 1 && prev ? prev.items : [],
@@ -204,7 +317,14 @@ export default function HutangSupplier() {
         }));
         try {
             const ress = await axios.get(`${API}/RIWAYAT_PEMBAYARAN_HUTANG`, {
-                params: { supplier_id: supplierId, page: halaman, limit: LIMIT_RIWAYAT, _t: Date.now() },
+                params: {
+                    supplier_id: supplierId,
+                    hanya_hutang: 1,
+                    ...(idPembelian ? { id_pembelian: idPembelian } : {}),
+                    page: halaman,
+                    limit: LIMIT_RIWAYAT,
+                    _t: Date.now()
+                },
                 headers: NO_CACHE
             });
             if (id !== reqRiwayat.current) return;
@@ -235,6 +355,7 @@ export default function HutangSupplier() {
         setTab('faktur');
         setDetail(null);
         setRiwayat(null);
+        setFilterFaktur('')
         setBayar({});
         setUangDibayar('');
         setInfoBagi('');
@@ -253,6 +374,7 @@ export default function HutangSupplier() {
         setTerpilih(null);
         setDetail(null);
         setRiwayat(null);
+        setFilterFaktur('')
     }, []);
 
     // Esc menutup panel + kunci scroll halaman di belakang panel
@@ -270,7 +392,12 @@ export default function HutangSupplier() {
 
     function pindahTab(t) {
         setTab(t);
-        if (t === 'riwayat' && terpilih && !riwayat) muatRiwayat(terpilih.supplier_id, 1);
+        if (t === 'riwayat' && terpilih && !riwayat) muatRiwayat(terpilih.supplier_id, 1, filterFaktur);
+    }
+
+    function pilihFilterFaktur(idPembelian) {
+        setFilterFaktur(idPembelian);
+        if (terpilih) muatRiwayat(terpilih.supplier_id, 1, idPembelian);
     }
 
     const fakturs = detail?.faktur || [];
@@ -357,6 +484,7 @@ export default function HutangSupplier() {
             setInfoBagi('');
             setCatatan('');
             setRiwayat(null);
+            setFilterFaktur('');
             await Promise.all([muatDetail(terpilih.supplier_id), muatDaftar()]);
         } catch (err) {
             setErrBayar(pesanError(err, 'Gagal menyimpan pembayaran. Cek koneksi lalu coba lagi.'));
@@ -376,510 +504,550 @@ export default function HutangSupplier() {
     // RENDER
     // ======================================================================
     return (
-        <div className="min-h-screen bg-slate-50 font-sans text-slate-800 antialiased pb-20">
-            <HeaderHutangSupplier />
+        <CEK_HAK_AKSES>
+            <div className="min-h-screen bg-slate-50 font-sans text-slate-800 antialiased pb-20">
+                <HeaderHutang/>
 
-            <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+                <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
 
-                {/* Header Section */}
-                <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
-                    <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
-                        Hutang Supplier
-                    </h1>
-                    <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">
-                        Supplier yang masih dihutangi toko. Klik supplier untuk melihat faktur dan mencatat pembayaran.
-                    </p>
-                </div>
-
-                {/* RINGKASAN CARDS */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-                    <KartuRingkasan tone="amber" label="Total Hutang" nilai={`Rp ${rp(ringkasan?.total_hutang)}`} />
-                    <KartuRingkasan label="Supplier Dihutangi" nilai={rp(ringkasan?.jumlah_supplier)} />
-                    <KartuRingkasan label="Faktur Belum Lunas" nilai={rp(ringkasan?.jumlah_faktur)} />
-                    <KartuRingkasan
-                        tone={num(ringkasan?.faktur_lewat_tempo) > 0 ? 'rose' : 'slate'}
-                        label="Lewat Jatuh Tempo"
-                        nilai={`Rp ${rp(ringkasan?.total_lewat_tempo)}`}
-                        sub={`${rp(ringkasan?.faktur_lewat_tempo)} faktur`}
-                    />
-                </div>
-
-                {/* PENCARIAN & FILTER */}
-                <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row gap-3">
-                    <div className="relative flex-1">
-                        <input
-                            value={q}
-                            onChange={(e) => setQ(e.target.value)}
-                            type="text"
-                            maxLength={100}
-                            placeholder="Cari nama supplier / no faktur..."
-                            className="w-full h-12 px-4 text-base sm:text-sm font-semibold text-slate-900 bg-slate-50/80 border border-slate-300 rounded-xl outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 transition-all placeholder:text-slate-400 placeholder:font-normal"
-                        />
-                    </div>
-                    <select
-                        value={sort}
-                        onChange={(e) => { setSort(e.target.value); setPage(1); }}
-                        className="h-12 px-4 text-base sm:text-sm border border-slate-300 rounded-xl bg-slate-50/80 font-bold text-slate-800 outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer shrink-0"
-                    >
-                        <option value="total_desc">Hutang terbesar</option>
-                        <option value="total_asc">Hutang terkecil</option>
-                        <option value="jatuh_tempo">Jatuh tempo terdekat</option>
-                        <option value="terlama">Faktur terlama</option>
-                        <option value="nama">Nama A-Z</option>
-                    </select>
-                </div>
-
-                {errDaftar && (
-                    <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200/80 text-sm text-rose-700 font-bold shadow-xs">
-                        {errDaftar}
-                    </div>
-                )}
-
-                {/* DAFTAR — MOBILE (NATIVE CARDS) */}
-                <div className={`md:hidden space-y-3 ${loadingDaftar ? 'opacity-50 pointer-events-none' : ''}`}>
-                    {listSupplier.map((s) => (
-                        <button
-                            key={s.supplier_id}
-                            type="button"
-                            onClick={() => bukaSupplier(s)}
-                            className="w-full text-left bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs active:scale-[0.98] transition-all space-y-3 cursor-pointer"
-                        >
-                            <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0 space-y-1">
-                                    <p className="font-extrabold text-slate-900 text-base leading-snug break-words">
-                                        {s.nama_supplier}
-                                    </p>
-                                    <span className="inline-block px-2 py-0.5 text-[11px] font-mono font-bold text-slate-500 bg-slate-100 rounded border border-slate-200">
-                                        ID {s.supplier_id}
-                                    </span>
-                                </div>
-                                <p className="shrink-0 font-black text-amber-700 text-base sm:text-lg">
-                                    Rp {rp(s.total_hutang)}
-                                </p>
-                            </div>
-
-                            <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-xs font-semibold text-slate-600">
-                                <span>
-                                    {s.jumlah_faktur} faktur{s.faktur_tertua ? ` • sejak ${s.faktur_tertua}` : ''}
-                                </span>
-                                <BadgeTempo hari={s.hari_ke_jatuh_tempo} />
-                            </div>
-                        </button>
-                    ))}
-                </div>
-
-                {/* DAFTAR — DESKTOP (TABEL CLEAN) */}
-                <div className={`hidden md:block overflow-hidden border border-slate-200/80 rounded-2xl bg-white shadow-xs ${loadingDaftar ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs sm:text-sm">
-                            <thead className="bg-slate-100/80 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
-                                <tr>
-                                    <th className="px-4 py-3.5">Supplier</th>
-                                    <th className="text-center px-4 py-3.5">Faktur</th>
-                                    <th className="text-right px-4 py-3.5">Total Hutang</th>
-                                    <th className="text-center px-4 py-3.5">Faktur Tertua</th>
-                                    <th className="text-center px-4 py-3.5">Jatuh Tempo</th>
-                                    <th className="px-4 py-3.5 text-right">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 font-semibold text-slate-800">
-                                {listSupplier.map((s) => (
-                                    <tr
-                                        key={s.supplier_id}
-                                        onClick={() => bukaSupplier(s)}
-                                        className="hover:bg-emerald-50/60 cursor-pointer transition-colors"
-                                    >
-                                        <td className="px-4 py-4">
-                                            <p className="font-extrabold text-slate-900 text-base leading-snug">{s.nama_supplier}</p>
-                                            <p className="text-xs text-slate-400 font-mono mt-0.5">ID {s.supplier_id}</p>
-                                        </td>
-                                        <td className="px-4 py-4 text-center font-bold text-slate-700">{s.jumlah_faktur}</td>
-                                        <td className="px-4 py-4 text-right font-black text-amber-700 text-base">Rp {rp(s.total_hutang)}</td>
-                                        <td className="px-4 py-4 text-center text-xs text-slate-500 font-medium">{s.faktur_tertua || '-'}</td>
-                                        <td className="px-4 py-4 text-center">
-                                            <div className="flex flex-col items-center gap-1">
-                                                <BadgeTempo hari={s.hari_ke_jatuh_tempo} />
-                                                {s.faktur_lewat_tempo > 0 && (
-                                                    <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                                                        {s.faktur_lewat_tempo} faktur telat
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-4 text-right">
-                                            <span className="inline-flex items-center text-xs sm:text-sm font-extrabold text-emerald-700 hover:text-emerald-800">
-                                                Lihat / Bayar →
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {/* KONDISI KOSONG */}
-                {!loadingDaftar && listSupplier.length === 0 && !errDaftar && (
-                    <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center space-y-2">
-                        <p className="text-base font-bold text-slate-700">
-                            {qAktif ? 'Tidak ada supplier berhutang yang cocok dengan pencarian.' : 'Tidak ada hutang. Semua faktur belanja sudah lunas.'}
+                    {/* Header Section */}
+                    <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
+                        <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
+                            Hutang Supplier
+                        </h1>
+                        <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">
+                            Supplier yang masih dihutangi toko. Klik supplier untuk melihat faktur dan mencatat pembayaran.
                         </p>
                     </div>
-                )}
 
-                {/* PAGING RESPONSIF */}
-                {paging && paging.total_page > 1 && (
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm pt-2">
-                        <span className="text-slate-500 font-medium text-center sm:text-left">
-                            Hal. {paging.page} / {paging.total_page} ({paging.total} supplier)
-                        </span>
-                        <div className="flex gap-2 w-full sm:w-auto">
+                    {/* RINGKASAN CARDS */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+                        <KartuRingkasan tone="amber" label="Total Hutang" nilai={`Rp ${rp(ringkasan?.total_hutang)}`} />
+                        <KartuRingkasan label="Supplier Dihutangi" nilai={rp(ringkasan?.jumlah_supplier)} />
+                        <KartuRingkasan label="Faktur Belum Lunas" nilai={rp(ringkasan?.jumlah_faktur)} />
+                        <KartuRingkasan
+                            tone={num(ringkasan?.faktur_lewat_tempo) > 0 ? 'rose' : 'slate'}
+                            label="Lewat Jatuh Tempo"
+                            nilai={`Rp ${rp(ringkasan?.total_lewat_tempo)}`}
+                            sub={`${rp(ringkasan?.faktur_lewat_tempo)} faktur`}
+                        />
+                    </div>
+
+                    {/* PENCARIAN & FILTER */}
+                    <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row gap-3">
+                        <div className="relative flex-1">
+                            <input
+                                value={q}
+                                onChange={(e) => setQ(e.target.value)}
+                                type="text"
+                                maxLength={100}
+                                placeholder="Cari nama supplier / no faktur..."
+                                className="w-full h-12 px-4 text-base sm:text-sm font-semibold text-slate-900 bg-slate-50/80 border border-slate-300 rounded-xl outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 transition-all placeholder:text-slate-400 placeholder:font-normal"
+                            />
+                        </div>
+                        <select
+                            value={sort}
+                            onChange={(e) => { setSort(e.target.value); setPage(1); }}
+                            className="h-12 px-4 text-base sm:text-sm border border-slate-300 rounded-xl bg-slate-50/80 font-bold text-slate-800 outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer shrink-0"
+                        >
+                            <option value="total_desc">Hutang terbesar</option>
+                            <option value="total_asc">Hutang terkecil</option>
+                            <option value="jatuh_tempo">Jatuh tempo terdekat</option>
+                            <option value="terlama">Faktur terlama</option>
+                            <option value="nama">Nama A-Z</option>
+                        </select>
+                    </div>
+
+                    {errDaftar && (
+                        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200/80 text-sm text-rose-700 font-bold shadow-xs">
+                            {errDaftar}
+                        </div>
+                    )}
+
+                    {/* DAFTAR — MOBILE (NATIVE CARDS) */}
+                    <div className={`md:hidden space-y-3 ${loadingDaftar ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {listSupplier.map((s) => (
                             <button
-                                disabled={page <= 1 || loadingDaftar}
-                                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                className="flex-1 sm:flex-none h-11 px-4 border border-slate-300 rounded-xl bg-white font-bold text-slate-700 disabled:opacity-40 hover:bg-slate-50 transition-colors cursor-pointer"
+                                key={s.supplier_id}
+                                type="button"
+                                onClick={() => bukaSupplier(s)}
+                                className="w-full text-left bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs active:scale-[0.98] transition-all space-y-3 cursor-pointer"
                             >
-                                Sebelumnya
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 space-y-1">
+                                        <p className="font-extrabold text-slate-900 text-base leading-snug break-words">
+                                            {s.nama_supplier}
+                                        </p>
+                                        <span className="inline-block px-2 py-0.5 text-[11px] font-mono font-bold text-slate-500 bg-slate-100 rounded border border-slate-200">
+                                            ID {s.supplier_id}
+                                        </span>
+                                    </div>
+                                    <p className="shrink-0 font-black text-amber-700 text-base sm:text-lg">
+                                        Rp {rp(s.total_hutang)}
+                                    </p>
+                                </div>
+
+                                <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-xs font-semibold text-slate-600">
+                                    <span>
+                                        {s.jumlah_faktur} faktur{s.faktur_tertua ? ` • sejak ${s.faktur_tertua}` : ''}
+                                    </span>
+                                    <BadgeTempo hari={s.hari_ke_jatuh_tempo} />
+                                </div>
                             </button>
-                            <button
-                                disabled={page >= paging.total_page || loadingDaftar}
-                                onClick={() => setPage((p) => p + 1)}
-                                className="flex-1 sm:flex-none h-11 px-4 border border-slate-300 rounded-xl bg-white font-bold text-slate-700 disabled:opacity-40 hover:bg-slate-50 transition-colors cursor-pointer"
-                            >
-                                Berikutnya
-                            </button>
+                        ))}
+                    </div>
+
+                    {/* DAFTAR — DESKTOP (TABEL CLEAN) */}
+                    <div className={`hidden md:block overflow-hidden border border-slate-200/80 rounded-2xl bg-white shadow-xs ${loadingDaftar ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs sm:text-sm">
+                                <thead className="bg-slate-100/80 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
+                                    <tr>
+                                        <th className="px-4 py-3.5">Supplier</th>
+                                        <th className="text-center px-4 py-3.5">Faktur</th>
+                                        <th className="text-right px-4 py-3.5">Total Hutang</th>
+                                        <th className="text-center px-4 py-3.5">Faktur Tertua</th>
+                                        <th className="text-center px-4 py-3.5">Jatuh Tempo</th>
+                                        <th className="px-4 py-3.5 text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 font-semibold text-slate-800">
+                                    {listSupplier.map((s) => (
+                                        <tr
+                                            key={s.supplier_id}
+                                            onClick={() => bukaSupplier(s)}
+                                            className="hover:bg-emerald-50/60 cursor-pointer transition-colors"
+                                        >
+                                            <td className="px-4 py-4">
+                                                <p className="font-extrabold text-slate-900 text-base leading-snug">{s.nama_supplier}</p>
+                                                <p className="text-xs text-slate-400 font-mono mt-0.5">ID {s.supplier_id}</p>
+                                            </td>
+                                            <td className="px-4 py-4 text-center font-bold text-slate-700">{s.jumlah_faktur}</td>
+                                            <td className="px-4 py-4 text-right font-black text-amber-700 text-base">Rp {rp(s.total_hutang)}</td>
+                                            <td className="px-4 py-4 text-center text-xs text-slate-500 font-medium">{s.faktur_tertua || '-'}</td>
+                                            <td className="px-4 py-4 text-center">
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <BadgeTempo hari={s.hari_ke_jatuh_tempo} />
+                                                    {s.faktur_lewat_tempo > 0 && (
+                                                        <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                                                            {s.faktur_lewat_tempo} faktur telat
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4 text-right">
+                                                <span className="inline-flex items-center text-xs sm:text-sm font-extrabold text-emerald-700 hover:text-emerald-800">
+                                                    Lihat / Bayar →
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                )}
 
-                {/* PANEL DETAIL (SLIDE-OVER / BOTTOM SHEET MOBILE) */}
-                {terpilih && (
-                    <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/50 backdrop-blur-xs transition-opacity" onClick={tutupPanel}>
-                        <div
-                            role="dialog"
-                            aria-modal="true"
-                            aria-label={`Hutang ${terpilih.nama_supplier}`}
-                            className="w-full max-w-2xl h-full bg-slate-50 shadow-2xl flex flex-col overflow-hidden"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            {/* Header Panel */}
-                            <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4 flex items-start justify-between gap-3 shrink-0">
-                                <div className="min-w-0 space-y-0.5">
-                                    <h2 className="text-base sm:text-xl font-black text-slate-900 leading-snug break-words">
-                                        {terpilih.nama_supplier}
-                                    </h2>
-                                    <p className="text-xs text-slate-400 font-mono">ID {terpilih.supplier_id}</p>
-                                    {detail && (
-                                        <p className="mt-1 text-xs sm:text-sm text-slate-600 font-medium">
-                                            Total hutang: <strong className="text-amber-700 font-black">Rp {rp(detail.ringkasan.total_hutang)}</strong>
-                                            {' '}({detail.ringkasan.jumlah_faktur} faktur)
-                                        </p>
-                                    )}
-                                </div>
+                    {/* KONDISI KOSONG */}
+                    {!loadingDaftar && listSupplier.length === 0 && !errDaftar && (
+                        <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center space-y-2">
+                            <p className="text-base font-bold text-slate-700">
+                                {qAktif ? 'Tidak ada supplier berhutang yang cocok dengan pencarian.' : 'Tidak ada hutang. Semua faktur belanja sudah lunas.'}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* PAGING RESPONSIF */}
+                    {paging && paging.total_page > 1 && (
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm pt-2">
+                            <span className="text-slate-500 font-medium text-center sm:text-left">
+                                Hal. {paging.page} / {paging.total_page} ({paging.total} supplier)
+                            </span>
+                            <div className="flex gap-2 w-full sm:w-auto">
                                 <button
-                                    onClick={tutupPanel}
-                                    disabled={saving}
-                                    aria-label="Tutup"
-                                    className="shrink-0 w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xl font-bold transition-all disabled:opacity-40 cursor-pointer"
+                                    disabled={page <= 1 || loadingDaftar}
+                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    className="flex-1 sm:flex-none h-11 px-4 border border-slate-300 rounded-xl bg-white font-bold text-slate-700 disabled:opacity-40 hover:bg-slate-50 transition-colors cursor-pointer"
                                 >
-                                    ×
+                                    Sebelumnya
+                                </button>
+                                <button
+                                    disabled={page >= paging.total_page || loadingDaftar}
+                                    onClick={() => setPage((p) => p + 1)}
+                                    className="flex-1 sm:flex-none h-11 px-4 border border-slate-300 rounded-xl bg-white font-bold text-slate-700 disabled:opacity-40 hover:bg-slate-50 transition-colors cursor-pointer"
+                                >
+                                    Berikutnya
                                 </button>
                             </div>
+                        </div>
+                    )}
 
-                            {/* Navigation Tabs */}
-                            <div className="bg-white px-4 sm:px-6 flex gap-2 border-b border-slate-200 shrink-0">
-                                {[['faktur', 'Faktur Belum Lunas'], ['riwayat', 'Riwayat Pembayaran']].map(([k, label]) => (
+                    {/* PANEL DETAIL (SLIDE-OVER / BOTTOM SHEET MOBILE) */}
+                    {terpilih && (
+                        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/50 backdrop-blur-xs transition-opacity" onClick={tutupPanel}>
+                            <div
+                                role="dialog"
+                                aria-modal="true"
+                                aria-label={`Hutang ${terpilih.nama_supplier}`}
+                                className="w-full max-w-2xl h-full bg-slate-50 shadow-2xl flex flex-col overflow-hidden"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {/* Header Panel */}
+                                <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4 flex items-start justify-between gap-3 shrink-0">
+                                    <div className="min-w-0 space-y-0.5">
+                                        <h2 className="text-base sm:text-xl font-black text-slate-900 leading-snug break-words">
+                                            {terpilih.nama_supplier}
+                                        </h2>
+                                        <p className="text-xs text-slate-400 font-mono">ID {terpilih.supplier_id}</p>
+                                        {detail && (
+                                            <p className="mt-1 text-xs sm:text-sm text-slate-600 font-medium">
+                                                Total hutang: <strong className="text-amber-700 font-black">Rp {rp(detail.ringkasan.total_hutang)}</strong>
+                                                {' '}({detail.ringkasan.jumlah_faktur} faktur)
+                                            </p>
+                                        )}
+                                    </div>
                                     <button
-                                        key={k}
-                                        onClick={() => pindahTab(k)}
-                                        className={`py-3 text-xs sm:text-sm font-extrabold border-b-2 -mb-px transition-colors cursor-pointer ${tab === k ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'
-                                            }`}
+                                        onClick={tutupPanel}
+                                        disabled={saving}
+                                        aria-label="Tutup"
+                                        className="shrink-0 w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xl font-bold transition-all disabled:opacity-40 cursor-pointer"
                                     >
-                                        {label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Isi Panel (Scrollable Body) */}
-                            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-                                {errDetail && (
-                                    <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200/80 text-xs sm:text-sm text-rose-700 font-bold">
-                                        {errDetail}
-                                    </div>
-                                )}
-
-                                {hasil && tab === 'faktur' && (
-                                    <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 text-xs sm:text-sm space-y-2">
-                                        <p className="font-extrabold text-emerald-900">
-                                            {hasil.duplikat ? 'Pembayaran ini sudah tercatat sebelumnya: ' : 'Pembayaran berhasil dicatat: '}
-                                            {hasil.no_bayar} Rp {rp(hasil.total_bayar)} ({hasil.metode})
-                                        </p>
-                                        <ul className="text-emerald-900 text-xs space-y-1 border-t border-emerald-200/60 pt-2">
-                                            {hasil.rincian.map((r) => (
-                                                <li key={r.id_pembelian} className="flex justify-between gap-2 font-medium">
-                                                    <span className="font-mono break-all">{r.no_faktur}</span>
-                                                    <span className="shrink-0">
-                                                        Rp {rp(r.jumlah)} → {r.lunas ? <strong className="font-black text-emerald-800">LUNAS</strong> : <>sisa Rp {rp(r.sisa_sesudah)}</>}
-                                                    </span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-
-                                {tab === 'faktur' && (
-                                    <>
-                                        {loadingDetail && !detail && <p className="text-sm font-semibold text-slate-500 py-6 text-center">Memuat...</p>}
-
-                                        {detail && fakturs.length === 0 && (
-                                            <p className="py-12 text-center text-sm font-semibold text-slate-500">Semua faktur supplier ini sudah lunas.</p>
-                                        )}
-
-                                        {detail?.terpotong && (
-                                            <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-xs text-amber-800 font-bold">
-                                                Hanya faktur tertua yang ditampilkan. Lunasi dulu, lalu faktur berikutnya akan muncul.
-                                            </div>
-                                        )}
-
-                                        {fakturs.length > 0 && (
-                                            <>
-                                                {/* Pembagian Otomatis */}
-                                                <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3">
-                                                    <label className="text-xs font-extrabold text-slate-600 uppercase tracking-wider block">
-                                                        Uang yang dibayarkan (opsional)
-                                                    </label>
-                                                    <div className="flex flex-col sm:flex-row gap-2.5">
-                                                        <div className="flex-1 flex items-center border border-slate-300 rounded-xl overflow-hidden focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 bg-slate-50/80">
-                                                            <span className="bg-slate-100 px-3.5 py-3 text-xs font-bold text-slate-600 border-r border-slate-300">Rp</span>
-                                                            <input
-                                                                inputMode="numeric"
-                                                                value={uangDibayar === '' ? '' : rp(uangDibayar)}
-                                                                onChange={(e) => { setUangDibayar(digitsOnly(e.target.value)); setInfoBagi(''); }}
-                                                                placeholder="Contoh: 50.000"
-                                                                className="w-full h-12 px-3 text-base sm:text-sm font-extrabold text-slate-900 outline-none bg-transparent"
-                                                            />
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={bagiOtomatis}
-                                                            className="h-12 px-5 text-xs sm:text-sm font-extrabold rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer shrink-0"
-                                                        >
-                                                            Bagi ke faktur terlama
-                                                        </button>
-                                                    </div>
-                                                    {infoBagi && <p className="text-xs font-bold text-slate-600">{infoBagi}</p>}
-                                                </div>
-
-                                                {/* Daftar Faktur */}
-                                                <div className="space-y-3.5">
-                                                    {fakturs.map((f) => {
-                                                        const nilai = bayar[f.id_pembelian] ?? '';
-                                                        const lebih = num(nilai) > num(f.sisa_hutang);
-                                                        return (
-                                                            <div key={f.id_pembelian} className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3.5">
-                                                                <div className="flex items-start justify-between gap-2">
-                                                                    <div className="min-w-0">
-                                                                        <p className="font-mono font-extrabold text-slate-900 text-sm break-all">{f.no_faktur}</p>
-                                                                        <p className="text-xs font-medium text-slate-500 mt-0.5">
-                                                                            Belanja {f.tanggal_belanja || '-'}
-                                                                            {f.jatuh_tempo ? ` • Tempo ${f.jatuh_tempo}` : ''}
-                                                                        </p>
-                                                                    </div>
-                                                                    <BadgeTempo hari={f.hari_ke_jatuh_tempo} />
-                                                                </div>
-
-                                                                {/* Grid Detail Harga */}
-                                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                                                                    <div className="p-2.5 rounded-xl bg-slate-50">
-                                                                        <p className="text-slate-500 font-medium">Subtotal</p>
-                                                                        <p className="font-bold text-slate-900 mt-0.5">Rp {rp(f.subtotal)}</p>
-                                                                    </div>
-                                                                    <div className="p-2.5 rounded-xl bg-slate-50">
-                                                                        <p className="text-slate-500 font-medium">Diskon Faktur</p>
-                                                                        <p className="font-bold text-slate-900 mt-0.5">Rp {rp(f.diskon)}</p>
-                                                                    </div>
-
-                                                                    <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-100">
-                                                                        <p className="text-blue-600 font-extrabold uppercase text-[10px]">PPN ({f.ppn_persen || 0}%)</p>
-                                                                        <p className="font-extrabold text-blue-900 mt-0.5">Rp {rp(f.ppn_nominal || 0)}</p>
-                                                                    </div>
-
-                                                                    <div className="p-2.5 rounded-xl bg-slate-50">
-                                                                        <p className="text-slate-500 font-medium">Total belanja</p>
-                                                                        <p className="font-bold text-slate-900 mt-0.5">Rp {rp(f.grand_total || f.total_harga)}</p>
-                                                                    </div>
-                                                                    <div className="p-2.5 rounded-xl bg-slate-50">
-                                                                        <p className="text-slate-500 font-medium">Dibayar awal</p>
-                                                                        <p className="font-bold text-slate-900 mt-0.5">Rp {rp(f.dibayar_di_awal)}</p>
-                                                                    </div>
-                                                                    <div className="p-2.5 rounded-xl bg-slate-50">
-                                                                        <p className="text-slate-500 font-medium">Sudah dicicil</p>
-                                                                        <p className="font-bold text-slate-900 mt-0.5">Rp {rp(f.cicilan)}</p>
-                                                                    </div>
-                                                                    <div className="p-2.5 rounded-xl bg-slate-50">
-                                                                        <p className="text-[10px] text-slate-900 font-extrabold uppercase">Dipotong Retur</p>
-                                                                        <p className="font-extrabold text-slate-900 mt-0.5">Rp {rp(f.dipotong_retur || 0)}</p>
-                                                                    </div>
-                                                                    <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200">
-                                                                        <p className="text-amber-800 font-bold uppercase text-[10px]">SISA HUTANG</p>
-                                                                        <p className="font-black text-amber-900 mt-0.5">Rp {rp(f.sisa_hutang)}</p>
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* Form Input Pembayaran Per Faktur */}
-                                                                <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 pt-1">
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1">
-                                                                            Bayar faktur ini
-                                                                        </label>
-                                                                        <div className={`flex items-center border rounded-xl overflow-hidden ${lebih ? 'border-rose-400 bg-rose-50' : 'border-slate-300 focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 bg-slate-50/80'}`}>
-                                                                            <span className="bg-slate-100 px-3.5 py-3 text-xs font-bold text-slate-600 border-r border-slate-300">Rp</span>
-                                                                            <input
-                                                                                inputMode="numeric"
-                                                                                value={nilai === '' ? '' : rp(nilai)}
-                                                                                onChange={(e) => ubahBayar(f.id_pembelian, e.target.value)}
-                                                                                placeholder="0"
-                                                                                className="w-full min-w-0 h-12 px-3 text-base sm:text-sm font-extrabold text-slate-900 outline-none bg-transparent"
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="flex gap-2 shrink-0">
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => lunasi(f)}
-                                                                            className="h-12 px-4 text-xs font-extrabold rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all cursor-pointer"
-                                                                        >
-                                                                            Lunasi
-                                                                        </button>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => ubahBayar(f.id_pembelian, '')}
-                                                                            className="h-12 px-3.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
-                                                                        >
-                                                                            Kosongkan
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                                {lebih && <p className="text-xs font-bold text-rose-600">Melebihi sisa hutang faktur ini.</p>}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-
-                                                {/* Form Metode & Catatan */}
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                                                    <div>
-                                                        <label className="text-xs font-extrabold text-slate-600 uppercase tracking-wider block mb-1">Metode</label>
-                                                        <select
-                                                            value={metode}
-                                                            onChange={(e) => setMetode(e.target.value)}
-                                                            className="w-full h-12 px-3.5 border border-slate-300 rounded-xl text-base sm:text-sm font-bold bg-slate-50/80 text-slate-900 outline-none focus:bg-white focus:border-emerald-600"
-                                                        >
-                                                            <option value="TUNAI">Tunai</option>
-                                                            <option value="TRANSFER">Transfer</option>
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-xs font-extrabold text-slate-600 uppercase tracking-wider block mb-1">Catatan (opsional)</label>
-                                                        <input
-                                                            value={catatan}
-                                                            maxLength={500}
-                                                            onChange={(e) => setCatatan(e.target.value)}
-                                                            placeholder="Contoh: transfer BCA a.n. owner"
-                                                            className="w-full h-12 px-3.5 border border-slate-300 rounded-xl text-base sm:text-sm font-semibold bg-slate-50/80 text-slate-900 outline-none focus:bg-white focus:border-emerald-600"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </>
-                                        )}
-                                    </>
-                                )}
-
-                                {tab === 'riwayat' && (
-                                    <div className="space-y-3">
-                                        {riwayat?.error && (
-                                            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200/80 text-xs sm:text-sm text-rose-700 font-bold">
-                                                {riwayat.error}
-                                            </div>
-                                        )}
-                                        {(!riwayat || (riwayat.loading && riwayat.items.length === 0)) && (
-                                            <p className="text-sm font-semibold text-slate-500 py-6 text-center">Memuat...</p>
-                                        )}
-                                        {riwayat && !riwayat.loading && !riwayat.error && riwayat.items.length === 0 && (
-                                            <p className="py-12 text-center text-sm font-semibold text-slate-500">Belum ada riwayat pembayaran.</p>
-                                        )}
-                                        {(riwayat?.items || []).map((r) => (
-                                            <div key={r.no_bayar} className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-2.5">
-                                                <div className="flex justify-between items-start gap-3">
-                                                    <div className="min-w-0 space-y-1">
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            <p className="font-mono font-extrabold text-sm text-slate-900">{r.no_bayar}</p>
-                                                            <BadgeMetode tipe={r.tipe_transaksi} metode={r.metode} />
-                                                        </div>
-                                                        <p className="text-xs font-medium text-slate-500">
-                                                            {r.tanggal_bayar} oleh <span className="font-bold text-slate-800">{r.dibuat_oleh}</span>
-                                                        </p>
-                                                    </div>
-                                                    <p className="shrink-0 font-black text-emerald-700 text-base">Rp {rp(r.total_bayar)}</p>
-                                                </div>
-
-                                                {r.catatan && <p className="text-xs text-slate-600 italic font-medium break-words">"{r.catatan}"</p>}
-
-                                                <ul className="text-xs text-slate-700 space-y-1 pt-2 border-t border-slate-100 font-medium">
-                                                    {r.rincian.map((d) => (
-                                                        <li key={`${r.no_bayar}-${d.id_pembelian}`} className="flex flex-col sm:flex-row sm:justify-between gap-0.5">
-                                                            <span className="font-mono text-slate-900 font-bold break-all">{d.no_faktur}</span>
-                                                            <span>Rp {rp(d.jumlah)} <span className="text-slate-400">(sisa {rp(d.sisa_sebelum)} → {rp(d.sisa_sesudah)})</span></span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        ))}
-                                        {riwayat && riwayat.page < riwayat.totalPage && (
-                                            <button
-                                                type="button"
-                                                disabled={riwayat.loading}
-                                                onClick={() => muatRiwayat(terpilih.supplier_id, riwayat.page + 1)}
-                                                className="w-full h-12 text-xs sm:text-sm font-extrabold rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 active:scale-95 transition-all disabled:opacity-40 cursor-pointer"
-                                            >
-                                                {riwayat.loading ? 'Memuat...' : 'Muat lebih banyak'}
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Footer Panel (Action Simpan) */}
-                            {tab === 'faktur' && fakturs.length > 0 && (
-                                <div className="bg-white border-t border-slate-200 p-4 sm:p-5 space-y-3 shrink-0">
-                                    <div className="flex items-baseline justify-between gap-3">
-                                        <span className="text-xs sm:text-sm font-bold text-slate-600">Total dibayar sekarang</span>
-                                        <span className="text-lg sm:text-xl font-black text-emerald-700">Rp {rp(totalBayar)}</span>
-                                    </div>
-                                    {selisihUang !== null && selisihUang !== 0 && (
-                                        <p className={`text-xs font-bold ${selisihUang > 0 ? 'text-amber-700' : 'text-rose-600'}`}>
-                                            {selisihUang > 0
-                                                ? `Uang yang dibayarkan lebih Rp ${rp(selisihUang)} dari yang dialokasikan ke faktur.`
-                                                : `Uang yang dibayarkan kurang Rp ${rp(-selisihUang)} dari total yang diisi.`}
-                                        </p>
-                                    )}
-                                    {(errBayar || salahInput) && (
-                                        <p className="text-xs sm:text-sm font-bold text-rose-600">{errBayar || salahInput}</p>
-                                    )}
-                                    <button
-                                        type="button"
-                                        onClick={simpanBayar}
-                                        disabled={saving || totalBayar <= 0 || !!salahInput}
-                                        className="w-full h-12 rounded-xl font-extrabold text-sm text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-md shadow-emerald-600/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
-                                    >
-                                        {saving ? 'Menyimpan...' : 'Simpan Pembayaran'}
+                                        ×
                                     </button>
                                 </div>
-                            )}
+
+                                {/* Navigation Tabs */}
+                                <div className="bg-white px-4 sm:px-6 flex gap-2 border-b border-slate-200 shrink-0">
+                                    {[['faktur', 'Faktur Belum Lunas'], ['riwayat', 'Riwayat Pembayaran']].map(([k, label]) => (
+                                        <button
+                                            key={k}
+                                            onClick={() => pindahTab(k)}
+                                            className={`py-3 text-xs sm:text-sm font-extrabold border-b-2 -mb-px transition-colors cursor-pointer ${tab === k ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'
+                                                }`}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Isi Panel (Scrollable Body) */}
+                                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                                    {errDetail && (
+                                        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200/80 text-xs sm:text-sm text-rose-700 font-bold">
+                                            {errDetail}
+                                        </div>
+                                    )}
+
+                                    {hasil && tab === 'faktur' && (
+                                        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 text-xs sm:text-sm space-y-2">
+                                            <p className="font-extrabold text-emerald-900">
+                                                {hasil.duplikat ? 'Pembayaran ini sudah tercatat sebelumnya: ' : 'Pembayaran berhasil dicatat: '}
+                                                {hasil.no_bayar} Rp {rp(hasil.total_bayar)} ({hasil.metode})
+                                            </p>
+                                            <ul className="text-emerald-900 text-xs space-y-1 border-t border-emerald-200/60 pt-2">
+                                                {hasil.rincian.map((r) => (
+                                                    <li key={r.id_pembelian} className="flex justify-between gap-2 font-medium">
+                                                        <span className="font-mono break-all">{r.no_faktur}</span>
+                                                        <span className="shrink-0">
+                                                            Rp {rp(r.jumlah)} → {r.lunas ? <strong className="font-black text-emerald-800">LUNAS</strong> : <>sisa Rp {rp(r.sisa_sesudah)}</>}
+                                                        </span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    {tab === 'faktur' && (
+                                        <>
+                                            {loadingDetail && !detail && <p className="text-sm font-semibold text-slate-500 py-6 text-center">Memuat...</p>}
+
+                                            {detail && fakturs.length === 0 && (
+                                                <p className="py-12 text-center text-sm font-semibold text-slate-500">Semua faktur supplier ini sudah lunas.</p>
+                                            )}
+
+                                            {detail?.terpotong && (
+                                                <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-xs text-amber-800 font-bold">
+                                                    Hanya faktur tertua yang ditampilkan. Lunasi dulu, lalu faktur berikutnya akan muncul.
+                                                </div>
+                                            )}
+
+                                            {fakturs.length > 0 && (
+                                                <>
+                                                    {/* Pembagian Otomatis */}
+                                                    <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3">
+                                                        <label className="text-xs font-extrabold text-slate-600 uppercase tracking-wider block">
+                                                            Uang yang dibayarkan (opsional)
+                                                        </label>
+                                                        <div className="flex flex-col sm:flex-row gap-2.5">
+                                                            <div className="flex-1 flex items-center border border-slate-300 rounded-xl overflow-hidden focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 bg-slate-50/80">
+                                                                <span className="bg-slate-100 px-3.5 py-3 text-xs font-bold text-slate-600 border-r border-slate-300">Rp</span>
+                                                                <input
+                                                                    inputMode="numeric"
+                                                                    value={uangDibayar === '' ? '' : rp(uangDibayar)}
+                                                                    onChange={(e) => { setUangDibayar(digitsOnly(e.target.value)); setInfoBagi(''); }}
+                                                                    placeholder="Contoh: 50.000"
+                                                                    className="w-full h-12 px-3 text-base sm:text-sm font-extrabold text-slate-900 outline-none bg-transparent"
+                                                                />
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={bagiOtomatis}
+                                                                className="h-12 px-5 text-xs sm:text-sm font-extrabold rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer shrink-0"
+                                                            >
+                                                                Bagi ke faktur terlama
+                                                            </button>
+                                                        </div>
+                                                        {infoBagi && <p className="text-xs font-bold text-slate-600">{infoBagi}</p>}
+                                                    </div>
+
+                                                    {/* Daftar Faktur */}
+                                                    <div className="space-y-3.5">
+                                                        {fakturs.map((f) => {
+                                                            const nilai = bayar[f.id_pembelian] ?? '';
+                                                            const lebih = num(nilai) > num(f.sisa_hutang);
+                                                            return (
+                                                                <div key={f.id_pembelian} className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3.5">
+                                                                    <div className="flex items-start justify-between gap-2">
+                                                                        <div className="min-w-0">
+                                                                            <p className="font-mono font-extrabold text-slate-900 text-sm break-all">{f.no_faktur}</p>
+                                                                            <p className="text-xs font-medium text-slate-500 mt-0.5">
+                                                                                Belanja {f.tanggal_belanja || '-'}
+                                                                                {f.jatuh_tempo ? ` • Tempo ${f.jatuh_tempo}` : ''}
+                                                                            </p>
+                                                                        </div>
+                                                                        <BadgeTempo hari={f.hari_ke_jatuh_tempo} />
+                                                                    </div>
+
+                                                                    {/* Grid Detail Harga */}
+                                                                    <div className="rounded-xl border border-slate-200 bg-white text-sm overflow-hidden">
+
+                                                                        {/* ===== BAGIAN 1: RINCIAN TAGIHAN ===== */}
+                                                                        <div className="px-4 pt-3 pb-2">
+                                                                            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Rincian Tagihan</p>
+
+                                                                            <div className="flex items-baseline gap-2 py-1.5">
+                                                                                <span className="w-4 text-center font-bold text-slate-300"> </span>
+                                                                                <span className="text-slate-600">Subtotal belanja</span>
+                                                                                <span className="flex-1 border-b border-dotted border-slate-300" />
+                                                                                <span className="font-semibold tabular-nums text-slate-900">Rp {rp(f.subtotal)}</span>
+                                                                            </div>
+
+                                                                            <div className="flex items-baseline gap-2 py-1.5">
+                                                                                <span className="w-4 text-center font-bold text-emerald-600">−</span>
+                                                                                <span className="text-slate-600">Diskon faktur</span>
+                                                                                <span className="flex-1 border-b border-dotted border-slate-300" />
+                                                                                <span className={`font-semibold tabular-nums ${num(f.diskon) === 0 ? 'text-slate-400' : 'text-emerald-700'}`}>Rp {rp(f.diskon)}</span>
+                                                                            </div>
+
+                                                                            <div className="flex items-baseline gap-2 py-1.5">
+                                                                                <span className="w-4 text-center font-bold text-blue-600">+</span>
+                                                                                <span className="text-slate-600">PPN ({f.ppn_persen || 0}%)</span>
+                                                                                <span className="flex-1 border-b border-dotted border-slate-300" />
+                                                                                <span className={`font-semibold tabular-nums ${num(f.ppn_nominal) === 0 ? 'text-slate-400' : 'text-blue-800'}`}>Rp {rp(f.ppn_nominal || 0)}</span>
+                                                                            </div>
+
+                                                                            <div className="flex items-baseline gap-2 mt-1 pt-2 border-t-2 border-slate-800">
+                                                                                <span className="w-4 text-center font-bold text-slate-800">=</span>
+                                                                                <span className="font-extrabold text-slate-900">Total belanja</span>
+                                                                                <span className="flex-1" />
+                                                                                <span className="font-extrabold tabular-nums text-slate-900">Rp {rp(f.grand_total || f.total_harga)}</span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {/* ===== BAGIAN 2: YANG SUDAH MENGURANGI HUTANG ===== */}
+                                                                        <div className="px-4 pt-3 pb-3 bg-slate-50 border-t border-slate-200">
+                                                                            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Sudah Mengurangi Hutang</p>
+
+                                                                            <div className="flex items-baseline gap-2 py-1.5">
+                                                                                <span className="w-4 text-center font-bold text-emerald-600">−</span>
+                                                                                <span className="text-slate-600">Dibayar di awal</span>
+                                                                                <span className="flex-1 border-b border-dotted border-slate-300" />
+                                                                                <span className={`font-semibold tabular-nums ${num(f.dibayar_di_awal) === 0 ? 'text-slate-400' : 'text-slate-900'}`}>Rp {rp(f.dibayar_di_awal)}</span>
+                                                                            </div>
+
+                                                                            <div className="flex items-baseline gap-2 py-1.5">
+                                                                                <span className="w-4 text-center font-bold text-emerald-600">−</span>
+                                                                                <span className="text-slate-600">Dipotong retur</span>
+                                                                                <span className="flex-1 border-b border-dotted border-slate-300" />
+                                                                                <span className={`font-semibold tabular-nums ${num(f.dipotong_retur) === 0 ? 'text-slate-400' : 'text-slate-900'}`}>Rp {rp(f.dipotong_retur || 0)}</span>
+                                                                            </div>
+
+                                                                            <div className="flex items-baseline gap-2 py-1.5">
+                                                                                <span className="w-4 text-center font-bold text-emerald-600">−</span>
+                                                                                <span className="text-slate-600">Sudah dicicil</span>
+                                                                                <span className="flex-1 border-b border-dotted border-slate-300" />
+                                                                                <span className={`font-semibold tabular-nums ${num(f.cicilan) === 0 ? 'text-slate-400' : 'text-slate-900'}`}>Rp {rp(f.cicilan)}</span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {/* ===== BAGIAN 3: HASIL AKHIR ===== */}
+                                                                        <div className="flex items-center justify-between gap-3 px-4 py-3 bg-amber-50 border-t-2 border-amber-400">
+                                                                            <span className="text-xs font-extrabold uppercase tracking-wider text-amber-800">Sisa hutang</span>
+                                                                            <span className="text-xl font-black tabular-nums text-amber-900">Rp {rp(f.sisa_hutang)}</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Form Input Pembayaran Per Faktur */}
+                                                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 pt-1">
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block mb-1">
+                                                                                Bayar faktur ini
+                                                                            </label>
+                                                                            <div className={`flex items-center border rounded-xl overflow-hidden ${lebih ? 'border-rose-400 bg-rose-50' : 'border-slate-300 focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/20 bg-slate-50/80'}`}>
+                                                                                <span className="bg-slate-100 px-3.5 py-3 text-xs font-bold text-slate-600 border-r border-slate-300">Rp</span>
+                                                                                <input
+                                                                                    inputMode="numeric"
+                                                                                    value={nilai === '' ? '' : rp(nilai)}
+                                                                                    onChange={(e) => ubahBayar(f.id_pembelian, e.target.value)}
+                                                                                    placeholder="0"
+                                                                                    className="w-full min-w-0 h-12 px-3 text-base sm:text-sm font-extrabold text-slate-900 outline-none bg-transparent"
+                                                                                />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex gap-2 shrink-0">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => lunasi(f)}
+                                                                                className="h-12 px-4 text-xs font-extrabold rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 active:scale-95 transition-all cursor-pointer"
+                                                                            >
+                                                                                Lunasi
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => ubahBayar(f.id_pembelian, '')}
+                                                                                className="h-12 px-3.5 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
+                                                                            >
+                                                                                Kosongkan
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                    {lebih && <p className="text-xs font-bold text-rose-600">Melebihi sisa hutang faktur ini.</p>}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    {/* Form Metode & Catatan */}
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                                                        <div>
+                                                            <label className="text-xs font-extrabold text-slate-600 uppercase tracking-wider block mb-1">Metode</label>
+                                                            <select
+                                                                value={metode}
+                                                                onChange={(e) => setMetode(e.target.value)}
+                                                                className="w-full h-12 px-3.5 border border-slate-300 rounded-xl text-base sm:text-sm font-bold bg-slate-50/80 text-slate-900 outline-none focus:bg-white focus:border-emerald-600"
+                                                            >
+                                                                <option value="TUNAI">Tunai</option>
+                                                                <option value="TRANSFER">Transfer</option>
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-xs font-extrabold text-slate-600 uppercase tracking-wider block mb-1">Catatan (opsional)</label>
+                                                            <input
+                                                                value={catatan}
+                                                                maxLength={500}
+                                                                onChange={(e) => setCatatan(e.target.value)}
+                                                                placeholder="Contoh: transfer BCA a.n. owner"
+                                                                className="w-full h-12 px-3.5 border border-slate-300 rounded-xl text-base sm:text-sm font-semibold bg-slate-50/80 text-slate-900 outline-none focus:bg-white focus:border-emerald-600"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {tab === 'riwayat' && (
+                                        <div className="space-y-3">
+                                            {fakturs.length > 0 && (
+                                                <FilterFakturDropdown
+                                                    fakturs={fakturs}
+                                                    nilai={filterFaktur}
+                                                    onPilih={pilihFilterFaktur}
+                                                />
+                                            )}
+                                            {riwayat?.error && (
+                                                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200/80 text-xs sm:text-sm text-rose-700 font-bold">
+                                                    {riwayat.error}
+                                                </div>
+                                            )}
+                                            {(!riwayat || (riwayat.loading && riwayat.items.length === 0)) && (
+                                                <p className="text-sm font-semibold text-slate-500 py-6 text-center">Memuat...</p>
+                                            )}
+                                            {riwayat && !riwayat.loading && !riwayat.error && riwayat.items.length === 0 && (
+                                                <p className="py-12 text-center text-sm font-semibold text-slate-500">Belum ada riwayat pembayaran.</p>
+                                            )}
+                                            {(riwayat?.items || []).map((r) => (
+                                                <div key={r.no_bayar} className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-2.5">
+                                                    <div className="flex justify-between items-start gap-3">
+                                                        <div className="min-w-0 space-y-1">
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <p className="font-mono font-extrabold text-sm text-slate-900">{r.no_bayar}</p>
+                                                                <BadgeMetode tipe={r.tipe_transaksi} metode={r.metode} />
+                                                            </div>
+                                                            <p className="text-xs font-medium text-slate-500">
+                                                                {r.tanggal_bayar} oleh <span className="font-bold text-slate-800">{r.dibuat_oleh}</span>
+                                                            </p>
+                                                        </div>
+                                                        <p className="shrink-0 font-black text-emerald-700 text-base">Rp {rp(r.total_bayar)}</p>
+                                                    </div>
+
+                                                    {r.catatan && <p className="text-xs text-slate-600 italic font-medium break-words">"{r.catatan}"</p>}
+
+                                                    <ul className="text-xs text-slate-700 space-y-1 pt-2 border-t border-slate-100 font-medium">
+                                                        {r.rincian.map((d) => (
+                                                            <li key={`${r.no_bayar}-${d.id_pembelian}`} className="flex flex-col sm:flex-row sm:justify-between gap-0.5">
+                                                                <span className="font-mono text-slate-900 font-bold break-all">{d.no_faktur}</span>
+                                                                <span>Rp {rp(d.jumlah)} <span className="text-slate-400">(sisa {rp(d.sisa_sebelum)} → {rp(d.sisa_sesudah)})</span></span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            ))}
+                                            {riwayat && riwayat.page < riwayat.totalPage && (
+                                                <button
+                                                    type="button"
+                                                    disabled={riwayat.loading}
+                                                    onClick={() => muatRiwayat(terpilih.supplier_id, riwayat.page + 1, filterFaktur)}
+                                                    className="w-full h-12 text-xs sm:text-sm font-extrabold rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 active:scale-95 transition-all disabled:opacity-40 cursor-pointer"
+                                                >
+                                                    {riwayat.loading ? 'Memuat...' : 'Muat lebih banyak'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Footer Panel (Action Simpan) */}
+                                {tab === 'faktur' && fakturs.length > 0 && (
+                                    <div className="bg-white border-t border-slate-200 p-4 sm:p-5 space-y-3 shrink-0">
+                                        <div className="flex items-baseline justify-between gap-3">
+                                            <span className="text-xs sm:text-sm font-bold text-slate-600">Total dibayar sekarang</span>
+                                            <span className="text-lg sm:text-xl font-black text-emerald-700">Rp {rp(totalBayar)}</span>
+                                        </div>
+                                        {selisihUang !== null && selisihUang !== 0 && (
+                                            <p className={`text-xs font-bold ${selisihUang > 0 ? 'text-amber-700' : 'text-rose-600'}`}>
+                                                {selisihUang > 0
+                                                    ? `Uang yang dibayarkan lebih Rp ${rp(selisihUang)} dari yang dialokasikan ke faktur.`
+                                                    : `Uang yang dibayarkan kurang Rp ${rp(-selisihUang)} dari total yang diisi.`}
+                                            </p>
+                                        )}
+                                        {(errBayar || salahInput) && (
+                                            <p className="text-xs sm:text-sm font-bold text-rose-600">{errBayar || salahInput}</p>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={simpanBayar}
+                                            disabled={saving || totalBayar <= 0 || !!salahInput}
+                                            className="w-full h-12 rounded-xl font-extrabold text-sm text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 shadow-md shadow-emerald-600/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                                        >
+                                            {saving ? 'Menyimpan...' : 'Simpan Pembayaran'}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
-        </div>
+        </CEK_HAK_AKSES>
     );
 }

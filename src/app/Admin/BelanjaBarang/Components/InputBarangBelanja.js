@@ -26,6 +26,7 @@ export function InputBarangBelanja() {
       const API = '/api-be/SERVER_JUAL_BARANG/JUAL_BARANG';
       const ress = await axios.get(API, { params: { input: inputCariBarang } })
       setDataInputBarang(prev => ({ ...prev, ItemBarang: ress.data.Search }))
+      // setInputCariBarang("")
       tampilkanToast(ress.data.message, 'success')
     } catch (err) {
       tampilkanToast(err?.response?.data?.message, 'error')
@@ -82,7 +83,7 @@ export function InputBarangBelanja() {
   }, [inputCariBarang])
 
   return (
-    <section className="w-full max-w-6xl mx-auto bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 mb-6">
+    <section className="w-full max-w-7xl mx-auto bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 space-y-4 mb-6">
       {/* ROW SEARCH & TOMBOL TAMBAH */}
       <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
         {/* Input Cari & Button */}
@@ -91,7 +92,7 @@ export function InputBarangBelanja() {
             <input
               onChange={(e) => setInputCariBarang(e.target.value)}
               placeholder="Cari barang (contoh: ALE-ALE)..."
-              className="w-full h-12 px-4 text-base sm:text-sm font-semibold bg-slate-50/80 border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all"
+              className="w-full h-12 px-4 text-base sm:text-sm font-semibold bg-white border border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all"
             />
           </div>
           <button

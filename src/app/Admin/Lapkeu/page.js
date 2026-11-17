@@ -79,7 +79,7 @@ function LaporanLabaRugiContent() {
   // Inisialisasi tanggal hanya di client side untuk mencegah Hydration Mismatch
   useEffect(() => {
     const now = new Date();
-    const start = ymd(new Date(now.getFullYear(), now.getMonth(), 1));
+    const start = ymd(now);
     const end = ymd(now);
     setTglMulai(start);
     setTglSelesai(end);
@@ -267,11 +267,11 @@ function LaporanLabaRugiContent() {
 
 // PAGE //
 
-export default function LaporanLabaRugiPage(){
+export default function LaporanLabaRugiPage() {
 
-  return(
+  return (
     <CEK_HAK_AKSES>
-       <LaporanLabaRugiContent/>
+      <LaporanLabaRugiContent />
     </CEK_HAK_AKSES>
   )
 }

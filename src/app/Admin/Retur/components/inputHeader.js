@@ -5,6 +5,7 @@ import { Konteks } from "@/GlobalNilai/Global";
 import { KonteksOprasional } from "@/GlobalNilai/GlobalOprasional";
 import axios from "axios";
 import { useContext, useCallback, useState, useMemo, useEffect } from "react";
+import PesanModal from "./PesanModal.js";
 
 // ============================================================================
 // HELPER HITUNG (murni). BACKEND (ProsesRetur.js) TETAP YANG MENENTUKAN
@@ -35,7 +36,8 @@ export function InputHeaderRetur() {
     const [isSearching, setIsSearching] = useState(false);
     const [isSearchingBarang, setIsSearchingBarang] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-
+    const [listFakturSearch, setListFakturSearch] = useState([]);
+    const [pesanModal, setPesanModal] = useState(null);
 
     useEffect(() => {
         const noFakturAktif = dataRetur?.listRetur?.no_faktur;
@@ -89,6 +91,44 @@ export function InputHeaderRetur() {
             setIsSearching(false);
         }
     }, [dataInputRetur, setDataRetur]);
+
+    const cariDaftarFaktur = useCallback(async () => {
+    const keyword = (dataInputRetur?.input_no_faktur ?? '').trim();
+    if (!keyword) {
+        alert('Ketik no faktur atau nama pelanggan terlebih dahulu!');
+        return;
+    }
+
+    setIsSearching(true);
+    setListFakturSearch([]);
+    try {
+        const ress = await axios.get('/api-be/SERVER_RETUR/CARI_DAFTAR_FAKTUR', {
+            params: { input: keyword, _t: Date.now() },
+            headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+        });
+        const list = ress.data.list || [];
+
+        if (list.length === 0) {
+            alert('Faktur tidak ditemukan!');
+        } else if (list.length === 1 && list[0].bisa_diretur !== false) {
+            // Hasil cuma 1 -> langsung buka, tidak perlu klik lagi
+            await cari(list[0].no_faktur);
+        } else {
+            setListFakturSearch(list);
+        }
+    } catch (err) {
+        alert(err?.response?.data?.message || 'Gagal mencari faktur');
+    } finally {
+        setIsSearching(false);
+    }
+}, [dataInputRetur, cari]);
+
+const handlePilihFaktur = useCallback(async (noFaktur) => {
+    setListFakturSearch([]);
+    setListBarangManual([]); // reset barang faktur lain, karena faktur tujuan berganti
+    setDataInputRetur(prev => ({ ...prev, input_no_faktur: noFaktur }));
+    await cari(noFaktur);
+}, [cari, setDataInputRetur]);
 
     // ------------------------------------------------------------------
     // ITEM FAKTUR INI
@@ -208,9 +248,8 @@ export function InputHeaderRetur() {
             console.log('HASIL DARI BACKEND:', hasilData); // Cek F12 Console Browser
 
             if (hasilData.length === 0) {
-                alert('Barang tidak ditemukan atau sudah habis diretur!');
+                setPesanModal(ress.data.pesan || 'Barang tidak ditemukan atau sudah habis diretur!');
             }
-
             setListBarangSearch(hasilData);
         } catch (err) {
             console.error('Error Cari Barang:', err);
@@ -420,478 +459,512 @@ export function InputHeaderRetur() {
     }
 
     return (
-        <CEK_HAK_AKSES>
-            <main className="max-w-5xl mx-auto p-6 bg-white rounded-2xl shadow-lg border border-slate-200 my-6">
-                <h2 className="text-2xl font-bold text-slate-800 mb-4 border-b pb-3">
-                    Cari Faktur Retur
-                </h2>
 
-                <div className="flex items-center gap-3 mb-6">
-                    <input
-                        onChange={(e) => setDataInputRetur(prev => ({ ...prev, input_no_faktur: e.target.value }))}
-                        value={dataInputRetur?.input_no_faktur || ''}
-                        type="text"
-                        placeholder="Masukkan no faktur yang ingin di retur..."
-                        disabled={isSearching}
-                        onKeyDown={(e) => { if (e.key === 'Enter') cari(); }}
-                        className="flex-1 px-5 py-3 border-2 border-slate-300 rounded-xl text-base font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    />
-                    <button
-                        onClick={() => cari()}
-                        type="button"
-                        disabled={isSearching}
-                        className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base rounded-xl transition shadow-md cursor-pointer disabled:opacity-50"
-                    >
-                        {isSearching ? 'Mencari...' : 'Cari'}
-                    </button>
+        <main className="max-w-5xl mx-auto p-6 bg-white rounded-2xl shadow-lg border border-slate-200 my-6">
+            <h2 className="text-2xl font-bold text-slate-800 mb-4 border-b pb-3">
+                Cari Faktur Retur
+            </h2>
+
+            <div className="flex items-center gap-3 mb-6">
+                <input
+                    onChange={(e) => setDataInputRetur(prev => ({ ...prev, input_no_faktur: e.target.value }))}
+                    value={dataInputRetur?.input_no_faktur || ''}
+                    type="text"
+                    placeholder="Masukkan no faktur / nama pelanggan..."
+                    disabled={isSearching}
+                    // onKeyDown={(e) => { if (e.key === 'Enter') cari(); }}
+                   onKeyDown={(e) => { if (e.key === 'Enter') cariDaftarFaktur(); }}
+                    
+                    className="flex-1 px-5 py-3 border-2 border-slate-300 rounded-xl text-base font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <button
+                    // onClick={() => cari()}
+                    onClick={() => cariDaftarFaktur()}
+                    type="button"
+                    disabled={isSearching}
+                    className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base rounded-xl transition shadow-md cursor-pointer disabled:opacity-50"
+                >
+                    {isSearching ? 'Mencari...' : 'Cari'}
+                </button>
+            </div>
+{listFakturSearch.length > 0 && (
+    <div className="mb-6 bg-white border border-slate-200 rounded-xl shadow-lg max-h-80 overflow-y-auto divide-y divide-slate-100">
+        {listFakturSearch.map((f) => {
+            const habis = f.bisa_diretur === false;
+            return (
+                <div
+                    key={f.no_faktur}
+                    onClick={() => !habis && handlePilihFaktur(f.no_faktur)}
+                    className={`p-3 flex justify-between items-center group ${
+                        habis ? 'opacity-50 cursor-not-allowed bg-slate-50' : 'hover:bg-emerald-50 cursor-pointer'
+                    }`}
+                >
+                    <div>
+                        <p className="text-sm font-semibold text-slate-800 group-hover:text-emerald-700">
+                            {f.nama_pelanggan}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                            Faktur <span className="font-mono">{f.no_faktur}</span> • {f.tgl_faktur} • Sales: {f.nama_sales}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                            Sisa piutang: <strong>Rp {rp(f.sisa_piutang)}</strong>
+                        </p>
+                    </div>
+                    <span className={`text-xs font-bold shrink-0 ml-3 ${habis ? 'text-red-500' : 'text-emerald-600 group-hover:underline'}`}>
+                        {habis ? 'Semua barang sudah diretur' : 'Pilih Faktur'}
+                    </span>
                 </div>
+            );
+        })}
+    </div>
+)}
 
-                {dataRetur?.listRetur && (
-                    <div className="space-y-6 border-t-2 border-slate-100 pt-6">
-                        {/* Header Faktur */}
-                        <div className="bg-slate-50 p-5 rounded-xl text-sm md:text-base text-slate-800 grid grid-cols-2 md:grid-cols-4 gap-4 border border-slate-200 font-medium">
-                            <div>
-                                <span className="text-slate-500 block text-xs uppercase font-semibold">No Faktur</span>
-                                <strong className="text-slate-900">{dataRetur.listRetur.no_faktur}</strong>
-                            </div>
-                            <div>
-                                <span className="text-slate-500 block text-xs uppercase font-semibold">Tanggal</span>
-                                <strong className="text-slate-900">{dataRetur.listRetur.tgl_faktur}</strong>
-                            </div>
-                            <div>
-                                <span className="text-slate-500 block text-xs uppercase font-semibold">Pelanggan</span>
-                                <strong className="text-slate-900">{dataRetur.listRetur.nama_pelanggan}</strong>
-                            </div>
-                            <div>
-                                <span className="text-slate-500 block text-xs uppercase font-semibold">Sales</span>
-                                <strong className="text-slate-900">{dataRetur.listRetur.nama_sales}</strong>
-                            </div>
+            {dataRetur?.listRetur && (
+                <div className="space-y-6 border-t-2 border-slate-100 pt-6">
+                    {/* Header Faktur */}
+                    <div className="bg-slate-50 p-5 rounded-xl text-sm md:text-base text-slate-800 grid grid-cols-2 md:grid-cols-4 gap-4 border border-slate-200 font-medium">
+                        <div>
+                            <span className="text-slate-500 block text-xs uppercase font-semibold">No Faktur</span>
+                            <strong className="text-slate-900">{dataRetur.listRetur.no_faktur}</strong>
                         </div>
-
-                        {/* Pengaturan Retur Header */}
-                        <div className="bg-slate-50 p-5 rounded-xl text-sm space-y-4 border border-slate-200">
-                            <p className="font-bold text-slate-900 text-base border-b pb-2">Pengaturan Retur Header</p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-xs text-slate-600 block font-bold mb-1 uppercase">Metode Penyelesaian</label>
-                                    <select
-                                        value={dataRetur.metode_penyelesaian || 'POTONG_PIUTANG'}
-                                        onChange={(e) => setDataRetur(prev => ({ ...prev, metode_penyelesaian: e.target.value }))}
-                                        className="w-full p-3 border-2 rounded-xl bg-white text-sm font-bold text-slate-900 border-slate-300"
-                                    >
-                                        <option value="POTONG_PIUTANG">POTONG_PIUTANG (Potong Tagihan)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-xs text-slate-600 block font-bold mb-1 uppercase">Catatan Retur</label>
-                                    <input
-                                        type="text"
-                                        maxLength={500}
-                                        placeholder="Contoh: Barang rusak..."
-                                        value={dataRetur.catatan || ''}
-                                        onChange={(e) => setDataRetur(prev => ({ ...prev, catatan: e.target.value }))}
-                                        className="w-full p-3 border-2 rounded-xl bg-white text-sm text-slate-900 border-slate-300"
-                                    />
-                                </div>
-                            </div>
+                        <div>
+                            <span className="text-slate-500 block text-xs uppercase font-semibold">Tanggal</span>
+                            <strong className="text-slate-900">{dataRetur.listRetur.tgl_faktur}</strong>
                         </div>
+                        <div>
+                            <span className="text-slate-500 block text-xs uppercase font-semibold">Pelanggan</span>
+                            <strong className="text-slate-900">{dataRetur.listRetur.nama_pelanggan}</strong>
+                        </div>
+                        <div>
+                            <span className="text-slate-500 block text-xs uppercase font-semibold">Sales</span>
+                            <strong className="text-slate-900">{dataRetur.listRetur.nama_sales}</strong>
+                        </div>
+                    </div>
 
-                        {/* CARI BARANG DARI FAKTUR LAIN */}
-                        <div className="p-4 bg-amber-50/60 border-2 border-amber-300 rounded-xl space-y-3">
-                            <h3 className="text-sm font-bold text-amber-900">Cari & Tambah Barang dari Faktur Lain:</h3>
-                            <div className="flex items-center gap-3 max-w-md">
-                                <input
-                                    value={inputCariBarang || ''}
-                                    onChange={(e) => setInputCariBarang(e.target.value)}
-                                    onKeyDown={(e) => { if (e.key === 'Enter') cariBarang(); }}
-                                    type="text"
-                                    placeholder="No faktur / nama / kode barang..."
-                                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-amber-500 bg-white"
-                                />
-                                <button
-                                    onClick={() => cariBarang()}
-                                    type="button"
-                                    disabled={isSearchingBarang}
-                                    className="px-5 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition shrink-0 cursor-pointer disabled:opacity-50"
+                    {/* Pengaturan Retur Header */}
+                    <div className="bg-slate-50 p-5 rounded-xl text-sm space-y-4 border border-slate-200">
+                        <p className="font-bold text-slate-900 text-base border-b pb-2">Pengaturan Retur Header</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs text-slate-600 block font-bold mb-1 uppercase">Metode Penyelesaian</label>
+                                <select
+                                    value={dataRetur.metode_penyelesaian || 'POTONG_PIUTANG'}
+                                    onChange={(e) => setDataRetur(prev => ({ ...prev, metode_penyelesaian: e.target.value }))}
+                                    className="w-full p-3 border-2 rounded-xl bg-white text-sm font-bold text-slate-900 border-slate-300"
                                 >
-                                    {isSearchingBarang ? '...' : 'Cari'}
-                                </button>
+                                    <option value="POTONG_PIUTANG">POTONG_PIUTANG (Potong Tagihan)</option>
+                                </select>
                             </div>
+                            <div>
+                                <label className="text-xs text-slate-600 block font-bold mb-1 uppercase">Catatan Retur</label>
+                                <input
+                                    type="text"
+                                    maxLength={500}
+                                    placeholder="Contoh: Barang rusak..."
+                                    value={dataRetur.catatan || ''}
+                                    onChange={(e) => setDataRetur(prev => ({ ...prev, catatan: e.target.value }))}
+                                    className="w-full p-3 border-2 rounded-xl bg-white text-sm text-slate-900 border-slate-300"
+                                />
+                            </div>
+                        </div>
+                    </div>
 
-                            {listBarangSearch.length > 0 && (
-                                <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto divide-y divide-gray-100">
-                                    {listBarangSearch.map((item, index) => {
-                                        const habis = num(item.sisa_retur_pcs) <= 0;
-                                        return (
-                                            <div
-                                                key={item.id_detail_penjualan || `${item.kode_barang}-${index}`}
-                                                onClick={() => !habis && handlePilihBarang(item)}
-                                                className={`p-3 transition flex justify-between items-center group ${habis ? 'opacity-50 cursor-not-allowed' : 'hover:bg-amber-50 cursor-pointer'}`}
-                                            >
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <p className="text-sm font-semibold text-gray-800 group-hover:text-amber-700">
-                                                            {item.nama_barang}
-                                                        </p>
-                                                        {(item.is_bonus || Number(item.harga_jual || 0) === 0) && (
-                                                            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-1.5 py-0.5 rounded border border-emerald-300">
-                                                                BONUS
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <p className="text-xs text-gray-500">
-                                                        Faktur <span className="font-mono">{item.no_faktur_asal}</span> • Kode: <span className="font-mono">{item.kode_barang}</span>
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">
-                                                        Beli {item.qty_beli} {item.satuan_beli} • Harga bersih: <strong>Rp {rp(item.harga_bersih)}</strong> / {item.satuan_beli} • Sisa retur: {item.sisa_retur_pcs} PCS
-                                                    </p>
-                                                </div>
-                                                <span className="text-xs font-bold text-amber-600 group-hover:underline shrink-0 ml-3">
-                                                    {habis ? 'Habis diretur' : '+ Pilih Barang'}
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
+                    {/* CARI BARANG DARI FAKTUR LAIN */}
+                    <div className="p-4 bg-amber-50/60 border-2 border-amber-300 rounded-xl space-y-3">
+                        <h3 className="text-sm font-bold text-amber-900">Cari & Tambah Barang dari Faktur Lain:</h3>
+                        <div className="flex items-center gap-3 max-w-md">
+                            <input
+                                value={inputCariBarang || ''}
+                                onChange={(e) => setInputCariBarang(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') cariBarang(); }}
+                                type="text"
+                                placeholder="No faktur / nama / kode barang..."
+                                className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-amber-500 bg-white"
+                            />
+                            <button
+                                onClick={() => cariBarang()}
+                                type="button"
+                                disabled={isSearchingBarang}
+                                className="px-5 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition shrink-0 cursor-pointer disabled:opacity-50"
+                            >
+                                {isSearchingBarang ? '...' : 'Cari'}
+                            </button>
                         </div>
 
-                        {/* SECTION 1: BARANG DARI FAKTUR LAIN */}
-                        {listBarangManual.length > 0 && (
-                            <div className="space-y-4 border-l-4 border-amber-500 pl-4 py-2 bg-amber-50/20 rounded-r-xl">
-                                <h3 className="text-base font-bold text-amber-900">Barang dari Faktur Lain:</h3>
-                                {listBarangManual.map((item, index) => {
-                                    const { filteredSatuanRetur, satuanReturEfektif, hargaSatuan, subtotal, maxQtyAllowed } = getHitunganManualBarang(item);
-                                    const dariFaktur = !!item.id_detail_penjualan;
-
+                        {listBarangSearch.length > 0 && (
+                            <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto divide-y divide-gray-100">
+                                {listBarangSearch.map((item, index) => {
+                                    const habis = num(item.sisa_retur_pcs) <= 0;
                                     return (
-                                        <div key={item.id_manual || index} className="p-5 border-2 border-amber-400 bg-white rounded-xl space-y-4 shadow-sm">
-                                            <div className="flex items-center justify-between border-b border-amber-200 pb-3">
-                                                <div className="flex items-center gap-3">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={!!item.is_retur}
-                                                        onChange={(e) => handleManualItemChange(index, 'is_retur', e.target.checked)}
-                                                        className="w-5 h-5 text-amber-600 rounded cursor-pointer"
-                                                    />
-                                                    <div>
-                                                        <div className="flex items-center gap-2">
-                                                            <h4 className="font-bold text-slate-900 text-base">{item.nama_barang}</h4>
-                                                            {(item.is_bonus || Number(item.harga_jual || 0) === 0) && (
-                                                                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-md border border-emerald-300">
-                                                                    BONUS
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <p className="text-xs text-amber-700 font-medium">
-                                                            Kode: <span className="font-mono">{item.kode_barang}</span>
-                                                            {item.no_faktur_asal && <> • Faktur asal: <span className="font-mono">{item.no_faktur_asal}</span></>}
-                                                        </p>
-                                                    </div>
+                                        <div
+                                            key={item.id_detail_penjualan || `${item.kode_barang}-${index}`}
+                                            onClick={() => !habis && handlePilihBarang(item)}
+                                            className={`p-3 transition flex justify-between items-center group ${habis ? 'opacity-50 cursor-not-allowed' : 'hover:bg-amber-50 cursor-pointer'}`}
+                                        >
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm font-semibold text-gray-800 group-hover:text-amber-700">
+                                                        {item.nama_barang}
+                                                    </p>
+                                                    {(item.is_bonus || Number(item.harga_jual || 0) === 0) && (
+                                                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-1.5 py-0.5 rounded border border-emerald-300">
+                                                            BONUS
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleHapusItemManual(index)}
-                                                    className="text-xs font-bold text-red-500 hover:text-red-700 underline cursor-pointer"
-                                                >
-                                                    Hapus Item
-                                                </button>
+                                                <p className="text-xs text-gray-500">
+                                                    Faktur <span className="font-mono">{item.no_faktur_asal}</span> • Kode: <span className="font-mono">{item.kode_barang}</span>
+                                                </p>
+                                                <p className="text-xs text-gray-500">
+                                                    Beli {item.qty_beli} {item.satuan_beli} • Harga bersih: <strong>Rp {rp(item.harga_bersih)}</strong> / {item.satuan_beli} • Sisa retur: {item.sisa_retur_pcs} PCS
+                                                </p>
                                             </div>
-
-                                            {item.is_retur && (
-                                                <div className="space-y-4 pt-1">
-                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                        <div>
-                                                            <label className="text-xs font-bold text-slate-700 block mb-1">Satuan Saat Beli</label>
-                                                            {dariFaktur ? (
-                                                                <div className="w-full p-2.5 border-2 border-slate-200 rounded-lg bg-slate-50 text-sm font-bold text-slate-900">
-                                                                    {item.satuan_beli} <span className="text-xs font-medium text-slate-500">(sesuai faktur asal)</span>
-                                                                </div>
-                                                            ) : (
-                                                                <select
-                                                                    value={item.satuan_beli}
-                                                                    onChange={(e) => {
-                                                                        handleManualItemChange(index, 'satuan_beli', e.target.value);
-                                                                        handleManualItemChange(index, 'satuan_retur', e.target.value);
-                                                                    }}
-                                                                    className="w-full p-2.5 border-2 border-amber-300 rounded-lg bg-white text-sm font-bold text-slate-900"
-                                                                >
-                                                                    {item.list_satuan?.map((s, idx) => (
-                                                                        <option key={idx} value={s.nama_satuan}>
-                                                                            {s.nama_satuan} (Rp {rp(s.harga_jual)})
-                                                                        </option>
-                                                                    ))}
-                                                                </select>
-                                                            )}
-                                                        </div>
-
-                                                        <div>
-                                                            <label className="text-xs font-bold text-slate-700 block mb-1">Satuan Retur</label>
-                                                            <select
-                                                                value={satuanReturEfektif}
-                                                                onChange={(e) => {
-                                                                    const baru = e.target.value;
-                                                                    handleManualItemChange(index, 'satuan_retur', baru);
-                                                                    handleManualItemChange(index, 'qty_retur', 1);
-                                                                }}
-                                                                className="w-full p-2.5 border-2 border-amber-300 rounded-lg bg-white text-sm font-bold text-emerald-900"
-                                                            >
-                                                                {filteredSatuanRetur.map((s, idx) => (
-                                                                    <option key={idx} value={s.nama_satuan}>{s.nama_satuan}</option>
-                                                                ))}
-                                                            </select>
-                                                        </div>
-
-                                                        <div>
-                                                            <div className="flex justify-between items-center text-xs font-bold text-slate-700 mb-1">
-                                                                <span>Qty Retur</span>
-                                                                {Number.isFinite(maxQtyAllowed) && <span className="text-slate-500">Maksimal: {maxQtyAllowed}</span>}
-                                                            </div>
-                                                            <input
-                                                                type="number"
-                                                                min="1"
-                                                                max={Number.isFinite(maxQtyAllowed) ? maxQtyAllowed : undefined}
-                                                                value={item.qty_retur ?? ''}
-                                                                onChange={(e) => {
-                                                                    const val = e.target.value;
-                                                                    if (val === '') return handleManualItemChange(index, 'qty_retur', '');
-                                                                    const n = Number(val);
-                                                                    if (Number.isNaN(n)) return;
-                                                                    if (n < 1) return handleManualItemChange(index, 'qty_retur', 1);
-                                                                    if (n > maxQtyAllowed) {
-                                                                        alert(`Maksimal retur untuk satuan ${satuanReturEfektif} adalah ${maxQtyAllowed}`);
-                                                                        return handleManualItemChange(index, 'qty_retur', maxQtyAllowed);
-                                                                    }
-                                                                    handleManualItemChange(index, 'qty_retur', Math.floor(n));
-                                                                }}
-                                                                className="w-full p-2.5 border-2 border-amber-300 rounded-lg bg-white text-sm font-bold text-slate-900"
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        <div>
-                                                            <label className="text-xs font-bold text-slate-700 block mb-1">Kondisi Barang</label>
-                                                            <select
-                                                                value={item.kondisi || 'BAGUS'}
-                                                                onChange={(e) => handleManualItemChange(index, 'kondisi', e.target.value)}
-                                                                className="w-full p-2.5 border-2 border-slate-300 rounded-lg bg-white text-sm font-semibold"
-                                                            >
-                                                                <option value="BAGUS">BAGUS (Masuk Stok)</option>
-                                                                <option value="RUSAK">RUSAK (BS/Afkir)</option>
-                                                            </select>
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-xs font-bold text-slate-700 block mb-1">Alasan Retur</label>
-                                                            <input
-                                                                type="text"
-                                                                maxLength={255}
-                                                                placeholder="Sebab retur..."
-                                                                value={item.alasan || ''}
-                                                                onChange={(e) => handleManualItemChange(index, 'alasan', e.target.value)}
-                                                                className="w-full p-2.5 border-2 border-slate-300 rounded-lg bg-white text-sm"
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="bg-emerald-100/80 p-3 rounded-lg border-2 border-emerald-300 text-sm space-y-1 font-semibold">
-                                                        {dariFaktur && (
-                                                            <div className="flex justify-between items-center text-slate-600 text-xs">
-                                                                <span>Harga bersih faktur asal ({item.qty_beli} {item.satuan_beli}):</span>
-                                                                <span>Rp {rp(item.netto_baris)}</span>
-                                                            </div>
-                                                        )}
-                                                        <div className="flex justify-between items-center text-slate-700">
-                                                            <span>Harga per {satuanReturEfektif}:</span>
-                                                            <span>Rp {rp(hargaSatuan)}</span>
-                                                        </div>
-                                                        <div className="flex justify-between items-center text-emerald-900 font-bold text-base border-t border-emerald-200 pt-1">
-                                                            <span>Subtotal Item:</span>
-                                                            <span>Rp {rp(subtotal)}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
+                                            <span className="text-xs font-bold text-amber-600 group-hover:underline shrink-0 ml-3">
+                                                {habis ? <p className="text-red-500 font-bold">Sudah Habis diretur!</p> : '+ Pilih Barang'}
+                                            </span>
                                         </div>
                                     );
                                 })}
                             </div>
                         )}
-
-                        {/* SECTION 2: BARANG ASLI FAKTUR INI */}
-                       <div className="space-y-4">
-    <h3 className="text-base font-bold text-slate-800">Barang Asli Faktur Ini:</h3>
-    {dataRetur.listRetur.items?.map((item, index) => {
-        const selectedSatuanName = item.satuan_retur || item.satuan;
-        const h = getHitunganHargaRetur(item, selectedSatuanName);
-        const { maxQtyAllowed, maxQtyInPcs, sudahPcs, rasioRetur, netto, totalBeliPcs } = h;
-
-        const hargaSatuanRetur = hargaPerSatuan(netto, totalBeliPcs, rasioRetur);
-        const subtotalRetur = hitungSubtotalItemAsli(item);
-
-        const satuanBeliObj = item.satuans?.find(s => s.nama_satuan === item.satuan);
-        const maxLevel = satuanBeliObj?.level || 1;
-        const filteredSatuans = (item.satuans?.filter(s => s.level <= maxLevel) || [])
-            .filter(s => Math.floor(maxQtyInPcs / (s.rasio_ke_pcs || 1)) > 0);
-
-        // 1. UBAHAN: Cek barang bonus & gabung kondisi disabled
-        const isBonus = item.is_bonus || Number(item.harga_jual_kotor || item.harga_jual || 0) === 0;
-        const sudahHabisDiretur = maxQtyInPcs <= 0;
-        const isDisabled = isBonus || sudahHabisDiretur; // Kunci jika bonus ATAU habis
-
-        return (
-            <div 
-                key={item.id_detail ?? index} 
-                className={`p-5 border-2 rounded-xl text-sm space-y-4 transition ${
-                    isDisabled
-                        ? 'bg-slate-100/70 border-slate-200 opacity-60' // 2. UBAHAN: Efek redup & terkunci
-                        : item.is_retur 
-                            ? 'bg-emerald-50/70 border-emerald-400 shadow-sm' 
-                            : 'bg-white border-slate-200'
-                }`}
-            >
-                <div className="flex items-center justify-between border-b pb-3">
-                    <label className={`flex items-center gap-3 ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                        <input
-                            type="checkbox"
-                            checked={!isBonus && !!item.is_retur} // 3. UBAHAN: Jangan sampai tercentang jika bonus
-                            disabled={isDisabled} // 4. UBAHAN: Checkbox terkunci
-                            onChange={(e) => handleToggleRetur(index, item, filteredSatuans, e.target.checked)}
-                            className="w-5 h-5 text-emerald-600 rounded-md cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                        />
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-slate-900">{item.nama_barang}</h3>
-                                {isBonus && (
-                                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-md border border-emerald-300">
-                                        BONUS
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-xs text-slate-600 font-medium">
-                                Dipesan: <strong className="text-slate-900">{item.qty_beli} {item.satuan}</strong> | Sisa: <strong className={sudahHabisDiretur ? 'text-red-600' : 'text-emerald-800'}>{maxQtyInPcs} PCS</strong>
-                                {sudahPcs > 0 && ` (Pernah retur: ${sudahPcs} PCS)`}
-                            </p>
-                        </div>
-                    </label>
-                    <div className="text-right">
-                        <p className="text-slate-700 font-bold text-sm">Rp {rp(hargaSatuanRetur)} / {selectedSatuanName}</p>
                     </div>
-                </div>
 
-                {/* 5. UBAHAN: Pesan peringatan jika barang bonus */}
-                {isBonus && (
-                    <p className="text-xs text-amber-700 italic font-medium">
-                        * Barang bonus tidak dapat diretur pada metode Potong Piutang.
-                    </p>
-                )}
+                    {/* SECTION 1: BARANG DARI FAKTUR LAIN */}
+                    {listBarangManual.length > 0 && (
+                        <div className="space-y-4 border-l-4 border-amber-500 pl-4 py-2 bg-amber-50/20 rounded-r-xl">
+                            <h3 className="text-base font-bold text-amber-900">Barang dari Faktur Lain:</h3>
+                            {listBarangManual.map((item, index) => {
+                                const { filteredSatuanRetur, satuanReturEfektif, hargaSatuan, subtotal, maxQtyAllowed } = getHitunganManualBarang(item);
+                                const dariFaktur = !!item.id_detail_penjualan;
 
-                {item.is_retur && !isDisabled && (
-                    <div className="space-y-4 pt-1">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-xs font-bold text-slate-700 block mb-1">Satuan Retur</label>
-                                <select
-                                    value={selectedSatuanName}
-                                    onChange={(e) => handleChangeSatuanRetur(index, item, e.target.value)}
-                                    className="w-full p-2.5 border-2 rounded-lg bg-white text-sm font-bold text-emerald-900 border-emerald-400"
+                                return (
+                                    <div key={item.id_manual || index} className="p-5 border-2 border-amber-400 bg-white rounded-xl space-y-4 shadow-sm">
+                                        <div className="flex items-center justify-between border-b border-amber-200 pb-3">
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={!!item.is_retur}
+                                                    onChange={(e) => handleManualItemChange(index, 'is_retur', e.target.checked)}
+                                                    className="w-5 h-5 text-amber-600 rounded cursor-pointer"
+                                                />
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="font-bold text-slate-900 text-base">{item.nama_barang}</h4>
+                                                        {(item.is_bonus || Number(item.harga_jual || 0) === 0) && (
+                                                            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-md border border-emerald-300">
+                                                                BONUS
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-amber-700 font-medium">
+                                                        Kode: <span className="font-mono">{item.kode_barang}</span>
+                                                        {item.no_faktur_asal && <> • Faktur asal: <span className="font-mono">{item.no_faktur_asal}</span></>}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleHapusItemManual(index)}
+                                                className="text-xs font-bold text-red-500 hover:text-red-700 underline cursor-pointer"
+                                            >
+                                                Hapus Item
+                                            </button>
+                                        </div>
+
+                                        {item.is_retur && (
+                                            <div className="space-y-4 pt-1">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                    <div>
+                                                        <label className="text-xs font-bold text-slate-700 block mb-1">Satuan Saat Beli</label>
+                                                        {dariFaktur ? (
+                                                            <div className="w-full p-2.5 border-2 border-slate-200 rounded-lg bg-slate-50 text-sm font-bold text-slate-900">
+                                                                {item.satuan_beli} <span className="text-xs font-medium text-slate-500">(sesuai faktur asal)</span>
+                                                            </div>
+                                                        ) : (
+                                                            <select
+                                                                value={item.satuan_beli}
+                                                                onChange={(e) => {
+                                                                    handleManualItemChange(index, 'satuan_beli', e.target.value);
+                                                                    handleManualItemChange(index, 'satuan_retur', e.target.value);
+                                                                }}
+                                                                className="w-full p-2.5 border-2 border-amber-300 rounded-lg bg-white text-sm font-bold text-slate-900"
+                                                            >
+                                                                {item.list_satuan?.map((s, idx) => (
+                                                                    <option key={idx} value={s.nama_satuan}>
+                                                                        {s.nama_satuan} (Rp {rp(s.harga_jual)})
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        )}
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="text-xs font-bold text-slate-700 block mb-1">Satuan Retur</label>
+                                                        <select
+                                                            value={satuanReturEfektif}
+                                                            onChange={(e) => {
+                                                                const baru = e.target.value;
+                                                                handleManualItemChange(index, 'satuan_retur', baru);
+                                                                handleManualItemChange(index, 'qty_retur', 1);
+                                                            }}
+                                                            className="w-full p-2.5 border-2 border-amber-300 rounded-lg bg-white text-sm font-bold text-emerald-900"
+                                                        >
+                                                            {filteredSatuanRetur.map((s, idx) => (
+                                                                <option key={idx} value={s.nama_satuan}>{s.nama_satuan}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+
+                                                    <div>
+                                                        <div className="flex justify-between items-center text-xs font-bold text-slate-700 mb-1">
+                                                            <span>Qty Retur</span>
+                                                            {Number.isFinite(maxQtyAllowed) && <span className="text-slate-500">Maksimal: {maxQtyAllowed}</span>}
+                                                        </div>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            max={Number.isFinite(maxQtyAllowed) ? maxQtyAllowed : undefined}
+                                                            value={item.qty_retur ?? ''}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                if (val === '') return handleManualItemChange(index, 'qty_retur', '');
+                                                                const n = Number(val);
+                                                                if (Number.isNaN(n)) return;
+                                                                if (n < 1) return handleManualItemChange(index, 'qty_retur', 1);
+                                                                if (n > maxQtyAllowed) {
+                                                                    alert(`Maksimal retur untuk satuan ${satuanReturEfektif} adalah ${maxQtyAllowed}`);
+                                                                    return handleManualItemChange(index, 'qty_retur', maxQtyAllowed);
+                                                                }
+                                                                handleManualItemChange(index, 'qty_retur', Math.floor(n));
+                                                            }}
+                                                            className="w-full p-2.5 border-2 border-amber-300 rounded-lg bg-white text-sm font-bold text-slate-900"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="text-xs font-bold text-slate-700 block mb-1">Kondisi Barang</label>
+                                                        <select
+                                                            value={item.kondisi || 'BAGUS'}
+                                                            onChange={(e) => handleManualItemChange(index, 'kondisi', e.target.value)}
+                                                            className="w-full p-2.5 border-2 border-slate-300 rounded-lg bg-white text-sm font-semibold"
+                                                        >
+                                                            <option value="BAGUS">BAGUS (Masuk Stok)</option>
+                                                            <option value="RUSAK">RUSAK (BS/Afkir)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs font-bold text-slate-700 block mb-1">Alasan Retur</label>
+                                                        <input
+                                                            type="text"
+                                                            maxLength={255}
+                                                            placeholder="Sebab retur..."
+                                                            value={item.alasan || ''}
+                                                            onChange={(e) => handleManualItemChange(index, 'alasan', e.target.value)}
+                                                            className="w-full p-2.5 border-2 border-slate-300 rounded-lg bg-white text-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-emerald-100/80 p-3 rounded-lg border-2 border-emerald-300 text-sm space-y-1 font-semibold">
+                                                    {dariFaktur && (
+                                                        <div className="flex justify-between items-center text-slate-600 text-xs">
+                                                            <span>Harga bersih faktur asal ({item.qty_beli} {item.satuan_beli}):</span>
+                                                            <span>Rp {rp(item.netto_baris)}</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="flex justify-between items-center text-slate-700">
+                                                        <span>Harga per {satuanReturEfektif}:</span>
+                                                        <span>Rp {rp(hargaSatuan)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-emerald-900 font-bold text-base border-t border-emerald-200 pt-1">
+                                                        <span>Subtotal Item:</span>
+                                                        <span>Rp {rp(subtotal)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* SECTION 2: BARANG ASLI FAKTUR INI */}
+                    <div className="space-y-4">
+                        <h3 className="text-base font-bold text-slate-800">Barang Asli Faktur Ini:</h3>
+                        {dataRetur.listRetur.items?.map((item, index) => {
+                            const selectedSatuanName = item.satuan_retur || item.satuan;
+                            const h = getHitunganHargaRetur(item, selectedSatuanName);
+                            const { maxQtyAllowed, maxQtyInPcs, sudahPcs, rasioRetur, netto, totalBeliPcs } = h;
+
+                            const hargaSatuanRetur = hargaPerSatuan(netto, totalBeliPcs, rasioRetur);
+                            const subtotalRetur = hitungSubtotalItemAsli(item);
+
+                            const satuanBeliObj = item.satuans?.find(s => s.nama_satuan === item.satuan);
+                            const maxLevel = satuanBeliObj?.level || 1;
+                            const filteredSatuans = (item.satuans?.filter(s => s.level <= maxLevel) || [])
+                                .filter(s => Math.floor(maxQtyInPcs / (s.rasio_ke_pcs || 1)) > 0);
+
+                            // 1. UBAHAN: Cek barang bonus & gabung kondisi disabled
+                            const isBonus = item.is_bonus || Number(item.harga_jual_kotor || item.harga_jual || 0) === 0;
+                            const sudahHabisDiretur = maxQtyInPcs <= 0;
+                            const isDisabled = isBonus || sudahHabisDiretur; // Kunci jika bonus ATAU habis
+
+                            return (
+                                <div
+                                    key={item.id_detail ?? index}
+                                    className={`p-5 border-2 rounded-xl text-sm space-y-4 transition ${isDisabled
+                                            ? 'bg-slate-100/70 border-slate-200 opacity-60' // 2. UBAHAN: Efek redup & terkunci
+                                            : item.is_retur
+                                                ? 'bg-emerald-50/70 border-emerald-400 shadow-sm'
+                                                : 'bg-white border-slate-200'
+                                        }`}
                                 >
-                                    {filteredSatuans.length > 0 ? (
-                                        filteredSatuans.map((s, idx) => (
-                                            <option key={idx} value={s.nama_satuan}>{s.nama_satuan}</option>
-                                        ))
-                                    ) : (
-                                        <option value={item.satuan}>{item.satuan}</option>
+                                    <div className="flex items-center justify-between border-b pb-3">
+                                        <label className={`flex items-center gap-3 ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={!isBonus && !!item.is_retur} // 3. UBAHAN: Jangan sampai tercentang jika bonus
+                                                disabled={isDisabled} // 4. UBAHAN: Checkbox terkunci
+                                                onChange={(e) => handleToggleRetur(index, item, filteredSatuans, e.target.checked)}
+                                                className="w-5 h-5 text-emerald-600 rounded-md cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                                            />
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="font-bold text-slate-900">{item.nama_barang}</h3>
+                                                    {isBonus && (
+                                                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-md border border-emerald-300">
+                                                            BONUS
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-slate-600 font-medium">
+                                                    Dipesan: <strong className="text-slate-900">{item.qty_beli} {item.satuan}</strong> | Sisa: <strong className={sudahHabisDiretur ? 'text-red-600' : 'text-emerald-800'}>{maxQtyInPcs} PCS</strong>
+                                                    {sudahPcs > 0 && ` (Pernah retur: ${sudahPcs} PCS)`}
+                                                </p>
+                                            </div>
+                                        </label>
+                                        <div className="text-right">
+                                            <p className="text-slate-700 font-bold text-sm">Rp {rp(hargaSatuanRetur)} / {selectedSatuanName}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* 5. UBAHAN: Pesan peringatan jika barang bonus */}
+                                    {isBonus && (
+                                        <p className="text-xs text-amber-700 italic font-medium">
+                                            * Barang bonus tidak dapat diretur pada metode Potong Piutang.
+                                        </p>
                                     )}
-                                </select>
-                            </div>
 
-                            <div>
-                                <div className="flex justify-between items-center text-xs font-bold text-slate-700 mb-1">
-                                    <span>Qty Retur</span>
-                                    <span className="text-slate-500">Maksimal: {maxQtyAllowed}</span>
+                                    {item.is_retur && !isDisabled && (
+                                        <div className="space-y-4 pt-1">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="text-xs font-bold text-slate-700 block mb-1">Satuan Retur</label>
+                                                    <select
+                                                        value={selectedSatuanName}
+                                                        onChange={(e) => handleChangeSatuanRetur(index, item, e.target.value)}
+                                                        className="w-full p-2.5 border-2 rounded-lg bg-white text-sm font-bold text-emerald-900 border-emerald-400"
+                                                    >
+                                                        {filteredSatuans.length > 0 ? (
+                                                            filteredSatuans.map((s, idx) => (
+                                                                <option key={idx} value={s.nama_satuan}>{s.nama_satuan}</option>
+                                                            ))
+                                                        ) : (
+                                                            <option value={item.satuan}>{item.satuan}</option>
+                                                        )}
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <div className="flex justify-between items-center text-xs font-bold text-slate-700 mb-1">
+                                                        <span>Qty Retur</span>
+                                                        <span className="text-slate-500">Maksimal: {maxQtyAllowed}</span>
+                                                    </div>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        max={maxQtyAllowed}
+                                                        value={item.qty_retur ?? ''}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            if (val === '') return handleItemChange(index, 'qty_retur', '');
+                                                            const numVal = Number(val);
+                                                            if (Number.isNaN(numVal)) return;
+                                                            if (numVal < 1) return handleItemChange(index, 'qty_retur', 1);
+                                                            if (numVal > maxQtyAllowed) {
+                                                                alert(`Maksimal retur untuk satuan ${selectedSatuanName} adalah ${maxQtyAllowed}`);
+                                                                return handleItemChange(index, 'qty_retur', maxQtyAllowed);
+                                                            }
+                                                            handleItemChange(index, 'qty_retur', Math.floor(numVal));
+                                                        }}
+                                                        className="w-full p-2.5 border-2 border-slate-300 rounded-lg bg-white text-sm font-bold text-slate-900"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="text-xs font-bold text-slate-700 block mb-1">Kondisi Barang</label>
+                                                    <select
+                                                        value={item.kondisi || 'BAGUS'}
+                                                        onChange={(e) => handleItemChange(index, 'kondisi', e.target.value)}
+                                                        className="w-full p-2.5 border-2 border-slate-300 rounded-lg bg-white text-sm font-semibold text-slate-900"
+                                                    >
+                                                        <option value="BAGUS">BAGUS (Masuk Stok)</option>
+                                                        <option value="RUSAK">RUSAK (BS/Afkir)</option>
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <label className="text-xs font-bold text-slate-700 block mb-1">Alasan Retur</label>
+                                                    <input
+                                                        type="text"
+                                                        maxLength={255}
+                                                        placeholder="Sebab retur..."
+                                                        value={item.alasan || ''}
+                                                        onChange={(e) => handleItemChange(index, 'alasan', e.target.value)}
+                                                        className="w-full p-2.5 border-2 border-slate-300 rounded-lg bg-white text-sm font-medium text-slate-900"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-emerald-100/80 p-3 rounded-lg border-2 border-emerald-300 text-sm space-y-1 font-semibold">
+                                                <div className="flex justify-between items-center text-slate-700">
+                                                    <span>Harga per {selectedSatuanName}:</span>
+                                                    <span>Rp {rp(hargaSatuanRetur)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-emerald-900 font-bold text-base border-t border-emerald-200 pt-1">
+                                                    <span>Subtotal Item:</span>
+                                                    <span>Rp {rp(subtotalRetur)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    max={maxQtyAllowed}
-                                    value={item.qty_retur ?? ''}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (val === '') return handleItemChange(index, 'qty_retur', '');
-                                        const numVal = Number(val);
-                                        if (Number.isNaN(numVal)) return;
-                                        if (numVal < 1) return handleItemChange(index, 'qty_retur', 1);
-                                        if (numVal > maxQtyAllowed) {
-                                            alert(`Maksimal retur untuk satuan ${selectedSatuanName} adalah ${maxQtyAllowed}`);
-                                            return handleItemChange(index, 'qty_retur', maxQtyAllowed);
-                                        }
-                                        handleItemChange(index, 'qty_retur', Math.floor(numVal));
-                                    }}
-                                    className="w-full p-2.5 border-2 border-slate-300 rounded-lg bg-white text-sm font-bold text-slate-900"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-xs font-bold text-slate-700 block mb-1">Kondisi Barang</label>
-                                <select
-                                    value={item.kondisi || 'BAGUS'}
-                                    onChange={(e) => handleItemChange(index, 'kondisi', e.target.value)}
-                                    className="w-full p-2.5 border-2 border-slate-300 rounded-lg bg-white text-sm font-semibold text-slate-900"
-                                >
-                                    <option value="BAGUS">BAGUS (Masuk Stok)</option>
-                                    <option value="RUSAK">RUSAK (BS/Afkir)</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-bold text-slate-700 block mb-1">Alasan Retur</label>
-                                <input
-                                    type="text"
-                                    maxLength={255}
-                                    placeholder="Sebab retur..."
-                                    value={item.alasan || ''}
-                                    onChange={(e) => handleItemChange(index, 'alasan', e.target.value)}
-                                    className="w-full p-2.5 border-2 border-slate-300 rounded-lg bg-white text-sm font-medium text-slate-900"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="bg-emerald-100/80 p-3 rounded-lg border-2 border-emerald-300 text-sm space-y-1 font-semibold">
-                            <div className="flex justify-between items-center text-slate-700">
-                                <span>Harga per {selectedSatuanName}:</span>
-                                <span>Rp {rp(hargaSatuanRetur)}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-emerald-900 font-bold text-base border-t border-emerald-200 pt-1">
-                                <span>Subtotal Item:</span>
-                                <span>Rp {rp(subtotalRetur)}</span>
-                            </div>
-                        </div>
+                            );
+                        })}
                     </div>
-                )}
-            </div>
-        );
-    })}
-</div>
 
-                        {/* Total preview */}
-                        <div className="flex justify-between items-center bg-slate-900 text-white rounded-xl px-5 py-4 font-bold">
-                            <span>Total Retur (perkiraan)</span>
-                            <span className="text-xl">Rp {rp(totalPreview)}</span>
-                        </div>
-
-                        <button
-                            onClick={simpanRetur}
-                            disabled={isSaving}
-                            className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-lg rounded-xl transition shadow-lg cursor-pointer disabled:opacity-50"
-                        >
-                            {isSaving ? 'Menyimpan Retur...' : 'Simpan Retur'}
-                        </button>
+                    {/* Total preview */}
+                    <div className="flex justify-between items-center bg-slate-900 text-white rounded-xl px-5 py-4 font-bold">
+                        <span>Total Retur (perkiraan)</span>
+                        <span className="text-xl">Rp {rp(totalPreview)}</span>
                     </div>
-                )}
-            </main>
-        </CEK_HAK_AKSES>
+
+                    <button
+                        onClick={simpanRetur}
+                        disabled={isSaving}
+                        className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-lg rounded-xl transition shadow-lg cursor-pointer disabled:opacity-50"
+                    >
+                        {isSaving ? 'Menyimpan Retur...' : 'Simpan Retur'}
+                    </button>
+                </div>
+            )}
+             {pesanModal && <PesanModal pesan={pesanModal} onClose={() => setPesanModal(null)} />}
+        </main>
+
     );
 }

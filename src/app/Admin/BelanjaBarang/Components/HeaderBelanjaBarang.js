@@ -30,6 +30,7 @@ export function HeaderBelanjaBarang () {
 
     return (
     <div className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs transition-all">
+     
   <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3">
 
     {/* LEFT SECTION: BACK BUTTON & TITLE */}
@@ -48,7 +49,7 @@ export function HeaderBelanjaBarang () {
       {/* TEXT SECTION */}
       <div className="min-w-0 flex flex-col justify-center">
         <h1 className="text-base sm:text-xl font-extrabold tracking-tight text-slate-900 truncate leading-snug">
-          Form Belanja Barang
+          Form Pembelian Barang
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 font-medium truncate mt-0.5">
           Pencatatan barang masuk

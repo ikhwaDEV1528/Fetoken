@@ -172,7 +172,7 @@
 
 //   } catch (err) {
 //     const errorMsg = err?.response?.data?.message || 'Gagal membuka bonus barang';
-    
+
 //     if (typeof tampilkanToast === 'function') {
 //       tampilkanToast(errorMsg, 'error');
 //     } else {
@@ -228,10 +228,10 @@
 
 //     return ress?.data;
 
-  
+
 //   } catch (err) {
 //     const errorMsg = err?.response?.data?.message || 'Gagal membuka bonus barang';
-    
+
 //     if (typeof tampilkanToast === 'function') {
 //       tampilkanToast(errorMsg, 'error');
 //     } else {
@@ -468,7 +468,7 @@
 
 
 //           <div className="flex items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/80 px-5 sm:px-7 py-4 shrink-0">
-          
+
 //             <button onClick={()=> OpenBonus(formEditBarang.kode_barang)} className={`${DetailBarang.DataBarang?.ada_fitur_bonus == 0 ? 'block':'hidden'} bg-purple-100 text-purple-900 rounded-md p-2 font-extrabold hover:bg-purple-200`}>Terapkan Bonus</button>
 //             <button onClick={()=> CloseBonus(formEditBarang.kode_barang)} className={`${DetailBarang.DataBarang?.ada_fitur_bonus == 1 ? 'block':'hidden'} bg-orange-100 text-orange-900 rounded-md p-2 font-extrabold hover:bg-orange-200`}>Hentikan Bonus</button>
 //             <div className="flex">
@@ -479,7 +479,7 @@
 //               >
 //                 Batal
 //               </button>
-              
+
 //               <button
 //                 onClick={() => Simpan()}
 //                 type="button"
@@ -525,6 +525,7 @@ export function EditBarang() {
   // ==========================================
   const [editingFeeRupiah, setEditingFeeRupiah] = useState(false);
   const [feeRupiahText, setFeeRupiahText] = useState('');
+  let list_satuan = []
 
   const feePersen = parseFloat(formEditBarang.persentase_fee_harga_jual) || 0;
   const feeRupiahHitung = Math.round(modalBersihKarton * (feePersen / 100));
@@ -584,8 +585,7 @@ export function EditBarang() {
       harga_jual: hargaJualHitung,
       margin: marginHitung
     };
-    alert(JSON.stringify(payloadFormUser.list_satuan))
-
+   
     try {
       setLoading(prev => ({ ...prev, loadingRequest: true }));
 
@@ -637,7 +637,7 @@ export function EditBarang() {
     } catch (err) {
       const pesanGagal = err?.response?.data?.message || 'Internal server bermasalah coba lagi!';
       tampilkanToast(pesanGagal, 'error');
-      if (err.response.status == 401 || 403) {
+       if (err?.response?.status === 401 || err?.response?.status === 403) {
         setLoading(prev => ({ ...prev, timeout: true }))
       }
     } finally {
@@ -661,122 +661,206 @@ export function EditBarang() {
     }, 3000);
   }
 
-async function OpenBonus(params) {
+  async function OpenBonus(params) {
 
-  // 1. Destructuring dengan fallback objek kosong & optional chaining
-  const kode_barang = params?.kode_barang || formEditBarang?.kode_barang || DetailBarang?.DataBarang?.kode_barang;
+    // 1. Destructuring dengan fallback objek kosong & optional chaining
+    const kode_barang = params?.kode_barang || formEditBarang?.kode_barang || DetailBarang?.DataBarang?.kode_barang;
 
-  if (!kode_barang) {
-    return alert('Kode barang wajib diisi!');
-  }
-
-  try {
-    // 2. Set loading jika menggunakan state global/local
-    if (setLoading) {
-      setLoading(prev => ({ ...prev, loadingRequest: true }));
+    if (!kode_barang) {
+      return alert('Kode barang wajib diisi!');
     }
 
-    const API = '/api-be/SERVER_BARANG/OPEN_BONUS';
-    const ress = await axios.put(API, { kode_barang }, { withCredentials: true });
-
-    // 3. Beri notifikasi ke user
-    if (typeof tampilkanToast === 'function') {
-      tampilkanToast(ress?.data?.message || 'Berhasil membuka bonus!', 'success');
-    } else {
-      alert(ress?.data?.message || 'Berhasil membuka bonus!');
-    }
-
-    setDetailBarang(prev => ({
-      ...prev,
-      DataBarang:{
-        ...prev.DataBarang,
-        ada_fitur_bonus:1
+    try {
+      // 2. Set loading jika menggunakan state global/local
+      if (setLoading) {
+        setLoading(prev => ({ ...prev, loadingRequest: true }));
       }
-    }))
 
-    return ress?.data;
+      const API = '/api-be/SERVER_BARANG/OPEN_BONUS';
+      const ress = await axios.put(API, { kode_barang }, { withCredentials: true });
 
-  } catch (err) {
-    const errorMsg = err?.response?.data?.message || 'Gagal membuka bonus barang';
-    
-    if (typeof tampilkanToast === 'function') {
-      tampilkanToast(errorMsg, 'error');
-    } else {
-      alert(errorMsg);
-    }
-
-    // Handle session timeout jika ada
-    if (err?.response?.status === 401 || err?.response?.status === 403) {
-      window.location.href = err?.response?.data?.navigasi || '/';
-    }
-
-  } finally {
-    if (setLoading) {
-      setLoading(prev => ({ ...prev, loadingRequest: false }));
-    }
-  }
-}
-
-
-async function CloseBonus(params) {
-
-  // 1. Destructuring dengan fallback objek kosong & optional chaining
-  const kode_barang = params?.kode_barang || formEditBarang?.kode_barang || DetailBarang?.DataBarang?.kode_barang;
-
-  if (!kode_barang) {
-    return alert('Kode barang wajib diisi!');
-  }
-
-  try {
-    // 2. Set loading jika menggunakan state global/local
-    if (setLoading) {
-      setLoading(prev => ({ ...prev, loadingRequest: true }));
-    }
-
-    const API = '/api-be/SERVER_BARANG/CLOSE_BONUS';
-    const ress = await axios.put(API, { kode_barang }, { withCredentials: true });
-
-    // 3. Beri notifikasi ke user
-    if (typeof tampilkanToast === 'function') {
-      tampilkanToast(ress?.data?.message || 'Berhasil membuka bonus!', 'success');
-    } else {
-      alert(ress?.data?.message || 'Berhasil membuka bonus!');
-    }
-
-    setDetailBarang(prev => ({
-      ...prev,
-      DataBarang:{
-        ...prev.DataBarang,
-        ada_fitur_bonus:0
+      // 3. Beri notifikasi ke user
+      if (typeof tampilkanToast === 'function') {
+        tampilkanToast(ress?.data?.message || 'Berhasil membuka bonus!', 'success');
+      } else {
+        alert(ress?.data?.message || 'Berhasil membuka bonus!');
       }
-    }))
 
+      setDetailBarang(prev => ({
+        ...prev,
+        DataBarang: {
+          ...prev.DataBarang,
+          ada_fitur_bonus: 1
+        }
+      }))
 
-    return ress?.data;
+      return ress?.data;
 
-  
-  } catch (err) {
-    const errorMsg = err?.response?.data?.message || 'Gagal membuka bonus barang';
-    
-    if (typeof tampilkanToast === 'function') {
-      tampilkanToast(errorMsg, 'error');
-    } else {
-      alert(errorMsg);
-    }
+    } catch (err) {
+      const errorMsg = err?.response?.data?.message || 'Gagal membuka bonus barang';
 
-    // Handle session timeout jika ada
-    if (err?.response?.status === 401 || err?.response?.status === 403) {
-      window.location.href = err?.response?.data?.navigasi || '/';
-    }
+      if (typeof tampilkanToast === 'function') {
+        tampilkanToast(errorMsg, 'error');
+      } else {
+        alert(errorMsg);
+      }
 
-  } finally {
-    if (setLoading) {
-      setLoading(prev => ({ ...prev, loadingRequest: false }));
+      // Handle session timeout jika ada
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
+        window.location.href = err?.response?.data?.navigasi || '/';
+      }
+
+    } finally {
+      if (setLoading) {
+        setLoading(prev => ({ ...prev, loadingRequest: false }));
+      }
     }
   }
-}
 
 
+  async function CloseBonus(params) {
+
+    // 1. Destructuring dengan fallback objek kosong & optional chaining
+    const kode_barang = params?.kode_barang || formEditBarang?.kode_barang || DetailBarang?.DataBarang?.kode_barang;
+
+    if (!kode_barang) {
+      return alert('Kode barang wajib diisi!');
+    }
+
+    try {
+      // 2. Set loading jika menggunakan state global/local
+      if (setLoading) {
+        setLoading(prev => ({ ...prev, loadingRequest: true }));
+      }
+
+      const API = '/api-be/SERVER_BARANG/CLOSE_BONUS';
+      const ress = await axios.put(API, { kode_barang }, { withCredentials: true });
+
+      // 3. Beri notifikasi ke user
+      if (typeof tampilkanToast === 'function') {
+        tampilkanToast(ress?.data?.message || 'Berhasil membuka bonus!', 'success');
+      } else {
+        alert(ress?.data?.message || 'Berhasil membuka bonus!');
+      }
+
+      setDetailBarang(prev => ({
+        ...prev,
+        DataBarang: {
+          ...prev.DataBarang,
+          ada_fitur_bonus: 0
+        }
+      }))
+
+
+      return ress?.data;
+
+
+    } catch (err) {
+      const errorMsg = err?.response?.data?.message || 'Gagal membuka bonus barang';
+
+      if (typeof tampilkanToast === 'function') {
+        tampilkanToast(errorMsg, 'error');
+      } else {
+        alert(errorMsg);
+      }
+
+      // Handle session timeout jika ada
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
+        window.location.href = err?.response?.data?.navigasi || '/';
+      }
+
+    } finally {
+      if (setLoading) {
+        setLoading(prev => ({ ...prev, loadingRequest: false }));
+      }
+    }
+  }
+
+
+  async function DisbaleSatuan(item) {
+    const kode_barang = formEditBarang.kode_barang
+    const nama_satuan = item?.nama_satuan
+    const level = item?.level
+
+    // alert(kode_barang + " " + nama_satuan + " " + level)
+
+    if (!kode_barang || !nama_satuan || !level || nama_satuan == "") {
+      return alert('Sepertinya ada kesalahan, coba lagi!')
+    }
+
+    try {
+      const API = '/api-be/SERVER_BARANG/DISABLE_SATUAN';
+      const ress = await axios.put(API, {
+        kode_barang: kode_barang,
+        nama_satuan: nama_satuan,
+        level: level
+      })
+      setStatusSatuanLocal(item, 0);
+      tampilkanToast('Berhasil nonaktifkan satuan!', 'success');
+    } catch (err) {
+      alert('Gagal disbale satuan!')
+    }
+  }
+
+
+
+  async function ActiveSatuan(item) {
+    const kode_barang = formEditBarang.kode_barang
+    const nama_satuan = item?.nama_satuan
+    const level = item?.level
+
+    // alert(kode_barang + " " + nama_satuan + " " + level)
+
+    if (!kode_barang || !nama_satuan || !level || nama_satuan == "") {
+      return alert('Sepertinya ada kesalahan, coba lagi!')
+    }
+
+    try {
+      const API = '/api-be/SERVER_BARANG/ACTIVE_SATUAN';
+      const ress = await axios.put(API, {
+        kode_barang: kode_barang,
+        nama_satuan: nama_satuan,
+        level: level
+      })
+      setStatusSatuanLocal(item, 1);
+      tampilkanToast('Berhasil aktifkan satuan!', 'success');
+
+    } catch (err) {
+      alert('Gagal aktifkan satuan!')
+    }
+  }
+
+  function setStatusSatuanLocal(item, status) {
+    // 1. state form (modal)
+    setFormEditBarang(prev => ({
+      ...prev,
+      list_satuan: (prev.list_satuan || []).map(s =>
+        s.level === item.level && s.nama_satuan === item.nama_satuan
+          ? { ...s, is_active_satuan: status }
+          : s
+      )
+    }));
+
+    // 2. state daftar barang
+    setBarang(prev => prev.map(b => {
+      if (b.kode_barang !== formEditBarang.kode_barang) return b;
+      return {
+        ...b,
+        list_satuan: (b.list_satuan || []).map(s =>
+          s.level === item.level && s.nama_satuan === item.nama_satuan
+            ? { ...s, is_active_satuan: status }
+            : s
+        )
+      };
+    }));
+  }
+
+
+
+
+
+  if (!formEditBarang.list_satuan) return null
+  list_satuan = formEditBarang?.list_satuan || []
 
 
   if (loading.timeout) {
@@ -838,8 +922,8 @@ async function CloseBonus(params) {
             {/* Discount & Fee Section */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
-                  Diskon Distributor
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 flex gap-3">
+                  Diskon Distributor: <p className="text-red-500 font-bold">{' '} {Number(formEditBarang.persentase_diskon_distributor).toFixed(2) || 0}%</p>
                 </label>
                 <div className="relative rounded-xl shadow-xs">
                   <input
@@ -858,14 +942,14 @@ async function CloseBonus(params) {
 
               <div className="space-y-1.5">
                 <label className="flex gap-5 block text-xs font-bold uppercase tracking-wider text-slate-600">
-                  Fee:  <p className="text-red-500 font-bold">{' '} { Number(formEditBarang.persentase_fee_harga_jual).toFixed(2) || ""}%</p>
+                  Fee:  <p className="text-red-500 font-bold">{' '} {Number(formEditBarang.persentase_fee_harga_jual).toFixed(2) || ""}%</p>
                 </label>
                 <div className="relative rounded-xl shadow-xs">
                   <input
                     onChange={(e) => setFormEditBarang(prev => ({ ...prev, persentase_fee_harga_jual: e.target.value }))}
                     type="number"
                     step="any"
-                    value={formEditBarang.persentase_fee_harga_jual  || ""}
+                    value={formEditBarang.persentase_fee_harga_jual || ""}
                     placeholder="0.00"
                     className="w-full h-12 rounded-2xl border border-slate-300 pl-4 pr-10 text-base sm:text-lg font-bold text-slate-900 placeholder-slate-300 transition-all focus:border-indigo-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 bg-slate-50/80"
                   />
@@ -1018,6 +1102,39 @@ async function CloseBonus(params) {
               </div>
             </div>
 
+            {/* DISBALE SATUAN */}
+            {list_satuan?.map((item, index) => {
+              const aktif = item?.is_active_satuan == 1;
+
+              return (
+                <div key={index} className="flex gap-4">
+                  <div>
+                    <h1>Satuan</h1>
+                    <p className={`flex items-center justify-center px-3 py-3 rounded-lg min-w-50 font-bold ${aktif ? 'bg-gray-200' : 'bg-gray-100 text-gray-400 line-through'}`}>
+                      {item?.nama_satuan}
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3 max-h-10 mt-6">
+                    {aktif ? (
+                      <button
+                        className="bg-red-200 text-red-600 rounded-md px-2 hover:bg-red-100"
+                        onClick={() => DisbaleSatuan(item)}
+                      >
+                        Non Aktifkan
+                      </button>
+                    ) : (
+                      <button
+                        className="bg-green-200 text-green-600 rounded-md p-2 hover:bg-green-100"
+                        onClick={() => ActiveSatuan(item)}
+                      >
+                        Aktifkan
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
 
@@ -1026,9 +1143,9 @@ async function CloseBonus(params) {
 
 
           <div className="flex items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/80 px-5 sm:px-7 py-4 shrink-0">
-          
-            <button onClick={()=> OpenBonus(formEditBarang.kode_barang)} className={`${DetailBarang.DataBarang?.ada_fitur_bonus == 0 ? 'block':'hidden'} bg-purple-100 text-purple-900 rounded-md p-2 font-extrabold hover:bg-purple-200`}>Terapkan Bonus</button>
-            <button onClick={()=> CloseBonus(formEditBarang.kode_barang)} className={`${DetailBarang.DataBarang?.ada_fitur_bonus == 1 ? 'block':'hidden'} bg-orange-100 text-orange-900 rounded-md p-2 font-extrabold hover:bg-orange-200`}>Hentikan Bonus</button>
+
+            <button onClick={() => OpenBonus(formEditBarang.kode_barang)} className={`${DetailBarang.DataBarang?.ada_fitur_bonus == 0 ? 'block' : 'hidden'} bg-purple-100 text-purple-900 rounded-md p-2 font-extrabold hover:bg-purple-200`}>Terapkan Bonus</button>
+            <button onClick={() => CloseBonus(formEditBarang.kode_barang)} className={`${DetailBarang.DataBarang?.ada_fitur_bonus == 1 ? 'block' : 'hidden'} bg-orange-100 text-orange-900 rounded-md p-2 font-extrabold hover:bg-orange-200`}>Hentikan Bonus</button>
             <div className="flex">
               <button
                 onClick={() => setDetailBarang(prev => ({ ...prev, CloseEdit: false }))}
@@ -1037,7 +1154,7 @@ async function CloseBonus(params) {
               >
                 Batal
               </button>
-              
+
               <button
                 onClick={() => Simpan()}
                 type="button"

@@ -1,4 +1,5 @@
 'use client'
+import { CEK_HAK_AKSES } from '@/app/Hooks/Hooks';
 import { Fragment, useEffect, useState } from 'react';
 
 /**
@@ -219,6 +220,7 @@ export default function StokLog({ apiUrl = API_URL_DEFAULT }) {
   const akhir = pg ? Math.min(pg.page * pg.limit, pg.total) : 0;
 
   return (
+    <CEK_HAK_AKSES>
     <section className="sl" aria-busy={loading}>
 
       <style>{CSS}</style>
@@ -447,6 +449,7 @@ export default function StokLog({ apiUrl = API_URL_DEFAULT }) {
         </footer>
       )}
     </section>
+    </CEK_HAK_AKSES>
   );
 }
 

@@ -1,5 +1,7 @@
 'use client';
 
+import { CEK_HAK_AKSES } from '@/app/Hooks/Hooks';
+import { Opening } from '@/UI/opening/opening';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 
 /* ============================== API ============================== */
@@ -198,6 +200,8 @@ function SupplierPanel({ open, supplier, onClose, onSaved }) {
   const close = () => { if (!saving) onClose(); };
 
   return (
+  
+
     <>
       <div
         onClick={close}
@@ -326,7 +330,7 @@ const SupplierRow = memo(function SupplierRow({ item, onEdit }) {
 });
 
 /* ================================== Halaman ================================== */
-export default function SuppliersPage() {
+function SuppliersContent() {
   const [searchInput, setSearchInput] = useState('');
   const [query, setQuery] = useState('');
   const { items, status, hasMore, loadMore, reload, retry, replaceItem } = useSuppliers(query);
@@ -386,9 +390,24 @@ export default function SuppliersPage() {
   const isEmpty = items.length === 0 && status === 'idle' && !hasMore;
 
   return (
+    
     <div className="min-h-screen bg-white text-slate-800 antialiased">
       <header className="sticky top-0 z-20 border-b border-emerald-100 bg-white/95 backdrop-blur">
+      
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+           <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-10 w-10 text-emerald-600 font-bold transition-transform group-hover:-translate-x-0.5"
+            onClick={()=> window.navigation.back()}
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
           <div>
             <h1 className="text-xl font-semibold text-emerald-900">Daftar supplier</h1>
             <p className="text-sm text-slate-500">Kelola data pemasok barang Anda.</p>
@@ -478,5 +497,17 @@ export default function SuppliersPage() {
         {toast.msg}
       </div>
     </div>
+  
   );
+}
+
+
+
+export default function SuppliersPage(){
+
+  return (
+   
+      <SuppliersContent/>
+  
+  )
 }

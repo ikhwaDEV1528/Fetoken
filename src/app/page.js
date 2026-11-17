@@ -3,6 +3,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { User_not_found } from "@/UI/Alert/user-not-found";
+import { Opening } from "@/UI/opening/opening";
 
 export default function Login(value_kompo) {
   const [Form, setForm] = useState({
@@ -32,7 +33,7 @@ export default function Login(value_kompo) {
      
       const targetNavigasi = RES.data.navigasi;
       window.location.href = targetNavigasi;
-       alert('Berhasil')
+      //  alert('Berhasil')
     } catch (err) {
       setOption(prev => ({ ...prev, isloading: false }));
       if (err.response?.data?.status == 404) {
@@ -45,6 +46,7 @@ export default function Login(value_kompo) {
   }
 
   return (
+    <Opening>
     <main className="min-h-screen w-full flex flex-col justify-between items-center px-6 py-12 bg-slate-50/50 text-slate-800 antialiased">
       {/* Header Brand */}
       <div className="w-full max-w-sm flex justify-between items-center text-xs tracking-wider uppercase font-medium text-slate-400">
@@ -145,5 +147,6 @@ export default function Login(value_kompo) {
         <User_not_found params={Option.isAlert} state={setOption} />
       )}
     </main>
+    </Opening>
   );
 }

@@ -1,10 +1,13 @@
 'use client';
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useReactToPrint } from 'react-to-print';
 import { CEK_HAK_AKSES } from '@/app/Hooks/Hooks';
 import { EditFaktur } from './components/EditFaktur';
+import { TambahItemFaktur } from './components/TambahItemFaktur.js';
+import { Konteks } from '@/GlobalNilai/Global';
+import { HapusFakturGagal } from './components/PanelHapusFakturGagal';
 
 /* =============================================================================
  * KONFIGURASI
@@ -12,6 +15,16 @@ import { EditFaktur } from './components/EditFaktur';
 
 /** Jumlah faktur per halaman API. Dipakai juga untuk menentukan `hasMore`. */
 const PAGE_SIZE = 10;
+
+/** Daftar sales untuk dropdown filter. Tambah nama di sini kalau ada sales baru. */
+const SALES_LIST = ['dedysetiawan', 'ekowita'];
+
+const STATUS_OPTIONS = [
+  { value: '', label: 'Semua status' },
+  { value: 'belum_lunas', label: 'NET 12' }, // Belum lunas
+  { value: 'lunas', label: 'CASH' }, // Lunas
+  { value: 'lewat_tempo', label: 'Lewat jatuh tempo' },
+];
 
 /**
  * Konfigurasi kertas cetak (Epson LX-300+II, continuous form 9.5" x 5.5").
@@ -90,6 +103,23 @@ function formatTanggal(value) {
   if (Number.isNaN(date.getTime())) return '-';
   return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 }
+
+
+/** Date/ISO -> "YYYY-MM-DD" (format yang dibutuhkan <input type="date">) */
+function toInputDate(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+
+/** Singkatan satuan untuk faktur. Satuan yang tidak dikenal ditampilkan apa adanya, bukan dipaksa jadi PCS. */
+const formatSatuan = (satuan) => {
+  const s = String(satuan || '').trim().toUpperCase();
+  const singkatan = { KARTON: 'KRT', PACK: 'PK', BAL: 'BAL', BALL: 'BALL', PCS: 'PCS' };
+  return singkatan[s] || s || 'PCS';
+};
 
 /** Syarat pembayaran dihitung dari selisih tanggal faktur & jatuh tempo, mis. "NET 12". */
 function hitungSyaratPembayaran(tglFaktur, jatuhTempo) {
@@ -194,16 +224,43 @@ const PAGE_STYLE = buildPageStyle(PRINT_CONFIG);
  * KOMPONEN: CARD FAKTUR
  * ========================================================================== */
 
-const FakturPenjualanCard = memo(function FakturPenjualanCard({ faktur }) {
+const FakturPenjualanCard = memo(function FakturPenjualanCard({ faktur, onChanged, onItemDeleted, onFakturDeleted }) {
   const printRef = useRef(null);
   const [isOpenEditFaktur, setIsOpenEditFaktur] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
 
   const keteranganAwal = faktur.keterangan === 'Belum ada keterangan' ? '' : (faktur.keterangan || '');
   const [keterangan, setKeterangan] = useState(keteranganAwal);
+  const [tglPengiriman, setTglPengiriman] = useState(toInputDate(faktur.tgl_pengiriman));
+  const [editTgl, setEditTgl] = useState(false);
   const [editKeterangan, setEditKeterangan] = useState(false);
   const [draft, setDraft] = useState(keteranganAwal);
   const batalRef = useRef(false);
+  const [isOpenTambah, setIsOpenTambah] = useState(false);
+  const [gagalHapus, setGagalHapus] = useState({ open: false, alasan: [] });
+  const {setLoading} = useContext(Konteks)
+
+
+
+const simpanTglPengiriman = async (nilaiBaru) => {
+  setEditTgl(false);
+  if (!nilaiBaru || nilaiBaru === tglPengiriman) return;
+
+  const lama = tglPengiriman;
+  setTglPengiriman(nilaiBaru); // tampil langsung
+
+  try {
+    await axios.post('/api-be/SERVER_FAKTUR/UBAH_TGL_PENGIRIMAN', {
+      no_faktur: faktur.no_faktur,
+      tanggal_pengiriman: nilaiBaru,
+    });
+    tampilkanToast("Berhasil ubah tanggal pengiriman" , "success")
+  } catch (error) {
+    setTglPengiriman(lama);
+    console.error('Gagal ubah tgl pengiriman:', error?.response?.data || error.message);
+    tampilkanToast(error?.response?.data?.message , 'error');
+  }
+};
 
 
 
@@ -257,6 +314,25 @@ const FakturPenjualanCard = memo(function FakturPenjualanCard({ faktur }) {
     setCurrentItem(item);
   }, []);
 
+
+  const hapusFaktur = async () => {
+    if (!confirm(`Yakin HAPUS seluruh faktur ${faktur.no_faktur}?\nStok semua item akan dikembalikan. Tindakan ini tidak bisa dibatalkan.`)) return;
+    try {
+      const res = await axios.post('/api-be/SERVER_FAKTUR/HAPUS_SEMUA_FAKTUR', { no_faktur: faktur.no_faktur });
+         tampilkanToast("Berhasil Hapus Faktur" , "success")
+      // onFakturDeleted?.(faktur.no_faktur);
+      onChanged?.(); 
+    } catch (err) {
+      const alasan = err?.response?.data?.alasan;
+      if (Array.isArray(alasan) && alasan.length > 0) {
+        setGagalHapus({ open: true, alasan });
+      } else {
+        tampilkanToast("Berhasil ubah tanggal pengiriman" , "error")
+        // alert(err?.response?.data?.message || 'Gagal menghapus faktur');
+      }
+    }
+  };
+
   // Hitung subtotal, diskon, PPN, dan total akhir
   const { totalBelanja, diskonFaktur, ppnPersen, ppnNominal, grandTotal } = useMemo(() => {
     const subtotal = faktur.items?.reduce((acc, item) => acc + (Number(item.total_harga) || 0), 0) || 0;
@@ -273,10 +349,43 @@ const FakturPenjualanCard = memo(function FakturPenjualanCard({ faktur }) {
     };
   }, [faktur.items, faktur.diskon, faktur.ppn]);
 
-  const syaratPembayaran = hitungSyaratPembayaran(faktur.tgl_faktur, faktur.jatuhtempo_faktur);
+  // const syaratPembayaran = hitungSyaratPembayaran(faktur.tgl_faktur, faktur.jatuhtempo_faktur);
+  const syaratPembayaran = faktur.syarat_pembayaran || hitungSyaratPembayaran(faktur.tgl_faktur, faktur.jatuhtempo_faktur);
+
+
+  // TOAST //
+
+  function tampilkanToast(message, typeResponse) {
+        setLoading(prev => ({
+            ...prev,
+            toast: true,
+            toastMessage: message,
+            toastType: typeResponse
+        }));
+
+        setTimeout(() => {
+          setLoading(prev => ({
+            ...prev,
+            toast:false
+          }))
+        }, 3000)
+  }
 
   return (
     <div className="bg-white border border-gray-300 rounded-md shadow-md my-6 overflow-hidden">
+      {faktur.status_retur && (
+  <div className="px-4 pt-3 flex">
+    {faktur.status_retur === 'HABIS' ? (
+      <span className="text-xs font-bold px-3 py-1 rounded-full bg-red-100 text-red-700 border border-red-300">
+        HABIS DIRETUR
+      </span>
+    ) : (
+      <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+        PERNAH DIRETUR
+      </span>
+    )}
+  </div>
+)}
       {/* Di layar kecil, faktur discroll horizontal supaya tata letaknya tidak rusak */}
       <div className="overflow-x-auto">
         {/* Area faktur: ini yang dicetak. Ukuran cetak diatur penuh oleh PAGE_STYLE */}
@@ -339,10 +448,25 @@ const FakturPenjualanCard = memo(function FakturPenjualanCard({ faktur }) {
                 <span className="font-semibold whitespace-nowrap min-w-[10px]">Syarat Bayar:</span>
                 <span className="uppercase whitespace-nowrap">{syaratPembayaran}</span>
               </div>
-              <div className="flex gap-2">
-                <span className="font-semibold whitespace-nowrap min-w-[10px]">Tgl Pengiriman:</span>
-                <span className="whitespace-nowrap">{formatTanggal(faktur.tgl_pengiriman)}</span>
-              </div>
+              <div
+  onClick={() => !editTgl && setEditTgl(true)}
+  className="flex gap-2 cursor-pointer"
+  title="Klik untuk ubah tanggal pengiriman"
+>
+  <span className="font-semibold whitespace-nowrap min-w-[10px]">Tgl Pengiriman:</span>
+  {editTgl ? (
+    <input
+      type="date"
+      autoFocus
+      defaultValue={tglPengiriman}
+      onChange={(e) => simpanTglPengiriman(e.target.value)}
+      onBlur={() => setEditTgl(false)}
+      className="border border-gray-400 text-[12px] px-1"
+    />
+  ) : (
+    <span className="whitespace-nowrap">{formatTanggal(tglPengiriman)}</span>
+  )}
+</div>
               <div className="flex gap-2">
                 <span className="font-semibold whitespace-nowrap min-w-[10px]">Sales:</span>
                 <span className="uppercase">{faktur.sales || '-'}</span>
@@ -367,8 +491,8 @@ const FakturPenjualanCard = memo(function FakturPenjualanCard({ faktur }) {
               <tbody>
                 {faktur.items?.map((item, idx) => {
                   // Cek apakah item ini barang bonus (harga = 0)
-                  const isBonus = Number(item.harga_jual || 0) === 0 && Number(item.total_harga || 0) === 0;
-                  const formatSatuan = (s) => (s === 'KARTON' ? 'KRT' : s === 'PACK' ? 'PK' : 'PCS');
+                  const isBonus = Number(item.harga_jual || 0) === 0 && Number(item.total_harga || 0) === 0; // untuk sementara coment karna katanya fe nimpa harga jual untuk bonus > 0
+                  // const formatSatuan = (s) => (s === 'KARTON' ? 'KRT' : s === 'PACK' ? 'PK' : 'PCS');
 
                   return (
                     <tr
@@ -482,13 +606,13 @@ const FakturPenjualanCard = memo(function FakturPenjualanCard({ faktur }) {
               <div className="faktur-sign-area grid grid-cols-2 text-center text-[12px] pt-4">
                 <div>
                   <p>Disiapkan Oleh</p>
-                  <div className="faktur-sign-gap h-14" aria-hidden="true" />
-                  <p className="font-bold uppercase break-words">({faktur.nama_admin || '..........'})</p>
+                  {/* <div className="faktur-sign-gap h-14" aria-hidden="true" />
+                  <p className="font-bold uppercase break-words">({faktur.nama_admin || '..........'})</p> */}
                 </div>
                 <div>
                   <p>Penerima</p>
-                  <div className="faktur-sign-gap h-14" aria-hidden="true" />
-                  <p className="font-bold uppercase break-words">({faktur.nama_pelanggan || '..........'})</p>
+                  {/* <div className="faktur-sign-gap h-14" aria-hidden="true" />
+                  <p className="font-bold uppercase break-words">({faktur.nama_pelanggan || '..........'})</p> */}
                 </div>
               </div>
             </div>
@@ -531,15 +655,38 @@ const FakturPenjualanCard = memo(function FakturPenjualanCard({ faktur }) {
         open={isOpenEditFaktur}
         setOpen={setIsOpenEditFaktur}
         no_faktur={faktur.no_faktur}
+        onSaved={onChanged}
+        onDeleted={(item) => onItemDeleted?.(faktur.no_faktur, item.id_detail)}
       />
 
+       <HapusFakturGagal
+        open={gagalHapus.open}
+        onClose={() => setGagalHapus({ open: false, alasan: [] })}
+        noFaktur={faktur.no_faktur}
+        alasan={gagalHapus.alasan}
+      />
+
+      <TambahItemFaktur
+        open={isOpenTambah}
+        setOpen={setIsOpenTambah}
+        no_faktur={faktur.no_faktur}
+        onSaved={onChanged}
+      />
+
+
+
       {/* Tombol Print Outside Sheet */}
-      <div className="p-3 bg-gray-100 border-t border-gray-300 flex justify-end">
-        <button
-          type="button"
-          onClick={() => handlePrint()}
-          className="w-full sm:w-auto px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded transition flex items-center justify-center gap-2 shadow"
-        >
+      <div className="p-3 bg-gray-100 border-t border-gray-300 flex justify-end gap-2">
+        <button type="button" onClick={hapusFaktur}
+          className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded transition shadow">
+          Hapus Faktur
+        </button>
+        <button type="button" onClick={() => setIsOpenTambah(true)}
+          className="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded transition shadow">
+          + Tambah Item
+        </button>
+        <button type="button" onClick={() => handlePrint()}
+          className="w-full sm:w-auto px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded transition flex items-center justify-center gap-2 shadow">
           <span>🖨️ Cetak Nota/Faktur Penjualan</span>
         </button>
       </div>
@@ -557,15 +704,20 @@ export default function LihatPenjualanBarang() {
   const [fakturList, setFakturList] = useState([]);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [q, setQ] = useState('');
+  const [status, setStatus] = useState('');
+  const [sales, setSales] = useState('');
+  const [totalData, setTotalData] = useState(null); // null = belum pernah cari
 
   const observerRef = useRef(null);
   // Ref dipakai agar callback fetch stabil (tidak dibuat ulang tiap page/loading berubah)
   const pageRef = useRef(1);
   const loadingRef = useRef(false);
   const requestIdRef = useRef(0);
+  const filterRef = useRef({ tanggalMulai: '', tanggalSelesai: '' });
 
-  const fetchFaktur = useCallback(
-    async (isNewFilter = false) => {
+   const fetchFaktur = useCallback(
+    async (isNewFilter = false, override = null) => {
       if (!tanggalMulai || !tanggalSelesai) return;
       if (loadingRef.current && !isNewFilter) return;
 
@@ -575,12 +727,19 @@ export default function LihatPenjualanBarang() {
       setLoading(true);
 
       const currentPage = isNewFilter ? 1 : pageRef.current;
+      if (isNewFilter) {
+        filterRef.current = override || { tanggalMulai, tanggalSelesai, q, status, sales };
+      }
+      const f = filterRef.current;
 
       try {
         const response = await axios.get('/api-be/SERVER_JUAL_BARANG/AMBIL_FAKTUR_PENJUALAN', {
           params: {
-            tanggalMulai,
-            tanggalSelesai,
+            tanggalMulai: f.tanggalMulai,
+            tanggalSelesai: f.tanggalSelesai,
+            q: f.q || undefined,
+            status: f.status || undefined,
+            sales: f.sales || undefined,
             page: currentPage,
           },
         });
@@ -594,6 +753,7 @@ export default function LihatPenjualanBarang() {
         } else {
           setFakturList((prev) => [...prev, ...newItems]);
         }
+        setTotalData(response.data?.pagination?.total_data ?? null);
         pageRef.current = currentPage + 1;
         setHasMore(newItems.length >= PAGE_SIZE);
       } catch (error) {
@@ -607,13 +767,81 @@ export default function LihatPenjualanBarang() {
         }
       }
     },
-    [tanggalMulai, tanggalSelesai]
+    [tanggalMulai, tanggalSelesai, q, status, sales]
   );
+
+    const refreshFaktur = useCallback(async () => {
+    const { tanggalMulai: mulai, tanggalSelesai: selesai, q: cari, status: st, sales: sl } = filterRef.current;
+    const totalHalaman = pageRef.current - 1;
+    if (!mulai || !selesai || totalHalaman < 1) return;
+
+    try {
+      const responses = await Promise.all(
+        Array.from({ length: totalHalaman }, (_, i) =>
+          axios.get('/api-be/SERVER_JUAL_BARANG/AMBIL_FAKTUR_PENJUALAN', {
+            params: {
+              tanggalMulai: mulai,
+              tanggalSelesai: selesai,
+              q: cari || undefined,
+              status: st || undefined,
+              sales: sl || undefined,
+              page: i + 1,
+            },
+          })
+        )
+      );
+      setFakturList(responses.flatMap((r) => r.data?.data || []));
+      setTotalData(responses[0]?.data?.pagination?.total_data ?? null);
+    } catch (error) {
+      console.error('Gagal refresh faktur:', error?.response?.data || error.message);
+    }
+  }, []);
+
+  const handleItemDeleted = useCallback((noFaktur, idDetail) => {
+    setFakturList((prev) =>
+      prev.map((f) =>
+        f.no_faktur === noFaktur
+          ? { ...f, items: (f.items || []).filter((i) => i.id_detail !== idDetail) }
+          : f
+      )
+    );
+  }, []);
+
+  const handleFakturDeleted = useCallback((noFaktur) => {
+    setFakturList((prev) => prev.filter((f) => f.no_faktur !== noFaktur));
+  }, []);
 
   const handleFilter = (e) => {
     e.preventDefault();
     fetchFaktur(true);
   };
+
+  const handleReset = () => {
+    setQ('');
+    setStatus('');
+    setSales('');
+    fetchFaktur(true, { tanggalMulai, tanggalSelesai, q: '', status: '', sales: '' });
+  };
+
+  const adaFilter = Boolean(q || status || sales);
+
+    // Default saat masuk: hari ini (mis. 10 - 10) dan langsung dimuat
+  const autoCariRef = useRef(false);
+
+  useEffect(() => {
+    const now = new Date();
+    const hariIni = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    setTanggalMulai(hariIni);
+    setTanggalSelesai(hariIni);
+  }, []);
+
+  // Cari otomatis SEKALI saja setelah tanggal default terisi
+  useEffect(() => {
+    if (autoCariRef.current) return;
+    if (!tanggalMulai || !tanggalSelesai) return;
+    autoCariRef.current = true;
+    fetchFaktur(true);
+  }, [tanggalMulai, tanggalSelesai, fetchFaktur]);
 
   useEffect(() => {
     const target = observerRef.current;
@@ -679,9 +907,9 @@ export default function LihatPenjualanBarang() {
           </div>
         </div>
 
-        <form
+                <form
           onSubmit={handleFilter}
-          className="bg-white p-4 rounded-xl shadow-sm border border-slate-300 mb-8 flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-4"
+          className="bg-white p-4 rounded-xl shadow-sm border border-slate-300 mb-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-4"
         >
           <div className="w-full sm:w-auto">
             <label htmlFor="tanggal-mulai" className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">
@@ -710,17 +938,92 @@ export default function LihatPenjualanBarang() {
               required
             />
           </div>
-          <button
-            type="submit"
-            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-6 py-2.5 rounded-lg transition shadow-sm"
-          >
-            Cari Penjualan
-          </button>
+
+          <div className="w-full sm:flex-1 sm:min-w-[220px]">
+            <label htmlFor="filter-q" className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">
+              Pelanggan / No Faktur
+            </label>
+            <input
+              id="filter-q"
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Nama pelanggan, kode, atau no faktur"
+              maxLength={100}
+              autoComplete="off"
+              enterKeyHint="search"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-emerald-600 font-medium text-slate-700"
+            />
+          </div>
+
+          <div className="w-full sm:w-auto">
+            <label htmlFor="filter-sales" className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">
+              Sales
+            </label>
+            <select
+              id="filter-sales"
+              value={sales}
+              onChange={(e) => setSales(e.target.value)}
+              className="w-full sm:w-auto border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-emerald-600 font-medium text-slate-700 bg-white"
+            >
+              <option value="">Semua sales</option>
+              {SALES_LIST.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="w-full sm:w-auto">
+            <label htmlFor="filter-status" className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">
+              Status
+            </label>
+            <select
+              id="filter-status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="w-full sm:w-auto border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-emerald-600 font-medium text-slate-700 bg-white"
+            >
+              {STATUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex w-full sm:w-auto gap-2">
+            <button
+              type="submit"
+              className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-6 py-2.5 rounded-lg transition shadow-sm"
+            >
+              Cari Penjualan
+            </button>
+            {adaFilter && (
+              <button
+                type="button"
+                onClick={handleReset}
+                className="flex-none border border-slate-300 bg-white hover:bg-slate-50 text-slate-600 font-semibold text-sm px-4 py-2.5 rounded-lg transition"
+              >
+                Reset
+              </button>
+            )}
+          </div>
         </form>
+
+        {totalData !== null && (
+          <p className="mb-6 px-1 text-xs font-semibold text-slate-500">
+            Ditemukan <span className="text-emerald-700">{totalData}</span> faktur
+            {adaFilter ? ' sesuai filter' : ''}
+          </p>
+        )}
 
         <div className="space-y-8">
           {fakturList.map((faktur) => (
-            <FakturPenjualanCard key={faktur.no_faktur} faktur={faktur} />
+            <FakturPenjualanCard
+              key={faktur.no_faktur}
+              faktur={faktur}
+              onChanged={refreshFaktur}
+              onItemDeleted={handleItemDeleted}
+              onFakturDeleted={handleFakturDeleted}
+            />
           ))}
         </div>
 
@@ -729,8 +1032,15 @@ export default function LihatPenjualanBarang() {
           {!loading && !hasMore && fakturList.length > 0 && (
             <p className="text-xs text-slate-400 uppercase tracking-widest">— Akhir Dari Dokumen Penjualan —</p>
           )}
-          {!loading && fakturList.length === 0 && (
+          {/* {!loading && fakturList.length === 0 && (
             <p className="text-slate-500">Pilih rentang tanggal dan klik cari untuk menampilkan data.</p>
+          )} */}
+                    {!loading && fakturList.length === 0 && (
+            <p className="text-slate-500">
+              {totalData === null
+                ? 'Pilih rentang tanggal dan klik cari untuk menampilkan data.'
+                : 'Tidak ada faktur yang cocok dengan filter.'}
+            </p>
           )}
         </div>
       </div>

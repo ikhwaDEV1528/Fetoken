@@ -13,9 +13,6 @@ const nextConfig = {
 };
 
 
-// https://token-production-f782.up.railway.app/
-// https://cvputrabakhtipratama.netlify.app/
-// https://token-phi-dun.vercel.app/
 
 
 export default nextConfig;

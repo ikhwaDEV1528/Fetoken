@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import axios from "axios";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { Konteks } from "@/GlobalNilai/Global";
 
 export function Header() {
   const pathname = usePathname();
@@ -13,6 +14,7 @@ export function Header() {
   const [mobileAccordion, setMobileAccordion] = useState(null);
   const [scrolled, setScrolled] = useState(false);
   const closeTimer = useRef(null);
+  const {auth} = useContext(Konteks)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 4);
@@ -65,7 +67,7 @@ export function Header() {
       type: 'dropdown',
       children: [
         { label: 'Penjualan Barang', subLabel: 'Kasir & pencatatan penjualan', icon: 'bi bi-cash-coin', path: '/Admin/Penjualan' },
-        { label: 'Belanja Barang', subLabel: 'Pembelian stok & supplier', icon: 'bi bi-cart-plus', path: '/Admin/BelanjaBarang' },
+        { label: 'Pembelian Barang', subLabel: 'Pembelian stok & supplier', icon: 'bi bi-cart-plus', path: '/Admin/BelanjaBarang' },
       ],
     },
     {
@@ -75,7 +77,7 @@ export function Header() {
       type: 'dropdown',
       children: [
         { label: 'Faktur Penjualan Barang', subLabel: 'Kasir & pencatatan penjualan', icon: 'bi bi-receipt', path: '/Admin/LihatPenjualanBarang' },
-        { label: 'Faktur Belanja Barang', subLabel: 'Pembelian stok & supplier', icon: 'bi bi-receipt', path: '/Admin/LihatPembelianBarang' },
+        { label: 'Faktur Pembelian Barang', subLabel: 'Pembelian stok & supplier', icon: 'bi bi-receipt', path: '/Admin/LihatPembelianBarang' },
         { label: 'Surat jalan', subLabel: 'Surat jalan pengiriman', icon: 'bi bi-receipt', path: '/Admin/SuratJalan' },
       ],
     },
@@ -225,7 +227,7 @@ export function Header() {
 
               <div className="flex flex-col min-w-0 items-start">
                 <span className="font-bold text-sm sm:text-base tracking-tight text-white leading-none truncate">
-                  ikhwan
+                  {auth?.username}
                 </span>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className="w-1 h-1 rounded-full bg-lime-300 shrink-0" />
